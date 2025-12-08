@@ -1,18 +1,22 @@
 services:
     postgres:
-        image: postgres:16
+        image: postgres:16-alpine
         container_name: my_postgres
         restart: always
         environment:
             POSTGRES_USER: postgres
             POSTGRES_PASSWORD: postgres
             POSTGRES_DB: event_horizon
+            POSTGRES_HOST_AUTH_METHOD: md5 # Use md5 instead of trust for better security
         ports:
-            - "5432:5432"
+            - "5433:5432"
         volumes:
             - postgres_data:/var/lib/postgresql/data
-            # Optional: auto-run SQL scripts on first startup
-            # - ./init:/docker-entrypoint-initdb.d
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
 volumes:
     postgres_data:
