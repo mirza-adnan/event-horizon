@@ -1,7 +1,12 @@
+import "dotenv/config";
+
 import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
+import router from "./routes";
+
+// Middleware
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
@@ -13,10 +18,14 @@ const corsOptions: cors.CorsOptions = {
 };
 app.use(cors(corsOptions));
 
+// Routing
+app.use("/api", router);
+
 app.get("/", (req: Request, res: Response) => {
     res.send("Hello from the server side");
 });
 
-app.listen(5050, () => {
-    console.log("Server running on http://localhost:5050");
+const PORT = process.env.PORT || 5050;
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });

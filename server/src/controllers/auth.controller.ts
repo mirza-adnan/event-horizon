@@ -70,3 +70,48 @@ export const signup = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
+export const login = async (req: Request, res: Response) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res
+                .status(400)
+                .json({ message: "Username and password are required." });
+        }
+
+        const [user] = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.username, username));
+
+        if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+            password,
+            user.passwordHash
+        );
+
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+            expiresIn: "1h",
+        });
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 3600000,
+        });
+
+        res.status(200).json({ message: "Logged in successfully", user });
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
