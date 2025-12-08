@@ -1,0 +1,18 @@
+services:
+    postgres:
+        image: postgres:16
+        container_name: my_postgres
+        restart: always
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: event_horizon
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+            # Optional: auto-run SQL scripts on first startup
+            # - ./init:/docker-entrypoint-initdb.d
+
+volumes:
+    postgres_data:
