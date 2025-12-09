@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 
 import db from "../db";
-import { usersTable } from "../db/schema";
+import { User, usersTable } from "../db/schema";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -16,7 +16,7 @@ export const signup = async (req: Request, res: Response) => {
         if (!email || !username || !password || !dateOfBirth || !firstName) {
             return res
                 .status(400)
-                .json({ message: "All required fields must be provided." });
+                .json({ message: "All required fields must be provided" });
         }
 
         const existingUsers = await db
@@ -29,7 +29,7 @@ export const signup = async (req: Request, res: Response) => {
         if (existingUsers.length > 0) {
             return res
                 .status(409)
-                .json({ message: "Username or email already exists." });
+                .json({ message: "Username or email already exists" });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -50,6 +50,11 @@ export const signup = async (req: Request, res: Response) => {
                 username: usersTable.username,
                 firstName: usersTable.firstName,
                 lastName: usersTable.lastName,
+                bio: usersTable.bio,
+                phone: usersTable.phone,
+                avatarUrl: usersTable.avatarUrl,
+                dateOfBirth: usersTable.dateOfBirth,
+                createdAt: usersTable.createdAt,
             });
 
         const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, {
@@ -78,7 +83,7 @@ export const login = async (req: Request, res: Response) => {
         if (!username || !password) {
             return res
                 .status(400)
-                .json({ message: "Username and password are required." });
+                .json({ message: "Username and password are required" });
         }
 
         const [user] = await db
@@ -103,13 +108,20 @@ export const login = async (req: Request, res: Response) => {
             expiresIn: "1h",
         });
 
+        let userData: any = {};
+        Object.keys(user).forEach((key) => {
+            if (key !== "passwordHash") {
+                userData[key] = user[key as keyof User];
+            }
+        });
+
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             maxAge: 3600000,
         });
 
-        res.status(200).json({ message: "Logged in successfully", user });
+        res.status(200).json(userData);
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({ message: "Internal server error" });
