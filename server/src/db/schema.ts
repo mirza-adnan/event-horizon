@@ -1,5 +1,12 @@
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { date, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+    date,
+    pgEnum,
+    pgTable,
+    text,
+    timestamp,
+    uuid,
+} from "drizzle-orm/pg-core";
 
 export const usersTable = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -20,5 +27,35 @@ export const usersTable = pgTable("users", {
         .defaultNow(),
 });
 
+export const orgStatusEnum = pgEnum("organizer_status", [
+    "pending",
+    "verified",
+    "rejected",
+]);
+
+export const orgsTable = pgTable("organizers", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").unique().notNull(),
+    email: text("email").unique().notNull(),
+    passwordHash: text("password_hash").notNull(),
+    phone: text("phone").unique().notNull(),
+    address: text("address"),
+    city: text("city"),
+    country: text("country"),
+    website: text("website"),
+    description: text("description"),
+    proofOfExistenceUrl: text("proof_of_existence_url"),
+    status: orgStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", {
+        mode: "date",
+        withTimezone: true,
+    })
+        .notNull()
+        .defaultNow(),
+});
+
 export type User = InferSelectModel<typeof usersTable>;
 export type NewUser = InferInsertModel<typeof usersTable>;
+
+export type Organizer = InferSelectModel<typeof orgsTable>;
+export type NewOrganizer = InferInsertModel<typeof orgsTable>;
