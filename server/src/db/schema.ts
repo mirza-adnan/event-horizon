@@ -43,7 +43,7 @@ export const orgsTable = pgTable("organizers", {
     country: text("country"),
     website: text("website"),
     description: text("description"),
-    proofOfExistenceUrl: text("proof_of_existence_url"),
+    proofUrl: text("proofUrl"),
     status: orgStatusEnum("status").notNull().default("pending"),
     createdAt: timestamp("created_at", {
         withTimezone: true,

@@ -15,6 +15,13 @@
       "when": 1765821941476,
       "tag": "0001_lying_the_hood",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765901256728,
+      "tag": "0002_friendly_redwing",
+      "breakpoints": true
     }
   ]
 }

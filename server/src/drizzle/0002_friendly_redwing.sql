@@ -1,0 +1,1 @@
+ALTER TABLE "organizers" RENAME COLUMN "proof_of_existence_url" TO "proofUrl";
