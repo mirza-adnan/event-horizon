@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
     organizerRegister,
     organizerLogin,
-} from "../controllers/organizer.auth.controller";
+} from "../controllers/organizer.controller";
 import { uploadProof } from "../middleware/upload";
 
 const organizerRouter = Router();

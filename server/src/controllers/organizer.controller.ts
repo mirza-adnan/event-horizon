@@ -4,12 +4,18 @@ import jwt from "jsonwebtoken";
 import { eq, or } from "drizzle-orm";
 import db from "../db";
 import { orgsTable } from "../db/schema";
+import fs from "fs";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function organizerRegister(req: Request, res: Response) {
-    console.log("here");
     try {
+        if (!req.file) {
+            return res.status(400).json({
+                message: "Proof of existence is required",
+            });
+        }
+
         const {
             name,
             email,
@@ -23,6 +29,7 @@ export async function organizerRegister(req: Request, res: Response) {
         } = req.body;
 
         if (!name || !email || !password || !phone) {
+            fs.unlinkSync(req.file.path);
             return res.status(400).json({ error: "Missing required fields" });
         }
 
@@ -38,6 +45,7 @@ export async function organizerRegister(req: Request, res: Response) {
             );
 
         if (existingOrg.length > 0) {
+            fs.unlinkSync(req.file.path);
             let problem = "";
             if (existingOrg[0].name === name) {
                 problem = "name";
@@ -49,12 +57,6 @@ export async function organizerRegister(req: Request, res: Response) {
 
             return res.status(409).json({
                 message: `An organier with this ${problem} already exists.`,
-            });
-        }
-
-        if (!req.file) {
-            return res.status(400).json({
-                message: "Proof of existence is required",
             });
         }
 
@@ -108,6 +110,9 @@ export async function organizerRegister(req: Request, res: Response) {
             organizer: newOrg,
         });
     } catch (error) {
+        if (req.file) {
+            fs.unlinkSync(req.file.path);
+        }
         console.error("Error in organizer registration:", error);
         res.status(500).json({ error: "Error in organizer registration" });
     }
