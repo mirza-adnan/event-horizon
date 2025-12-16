@@ -20,7 +20,6 @@ export const usersTable = pgTable("users", {
     avatarUrl: text("avatar_url"),
     dateOfBirth: date("date_of_birth").notNull(),
     createdAt: timestamp("created_at", {
-        mode: "date",
         withTimezone: true,
     })
         .notNull()
@@ -47,7 +46,6 @@ export const orgsTable = pgTable("organizers", {
     proofOfExistenceUrl: text("proof_of_existence_url"),
     status: orgStatusEnum("status").notNull().default("pending"),
     createdAt: timestamp("created_at", {
-        mode: "date",
         withTimezone: true,
     })
         .notNull()

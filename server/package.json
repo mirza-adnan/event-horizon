@@ -10,7 +10,8 @@
         "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts",
         "build": "tsc",
         "db:generate": "drizzle-kit generate",
-        "db:migrate": "drizzle-kit migrate"
+        "db:migrate": "drizzle-kit migrate",
+        "drizzle:studio": "drizzle-kit studio"
     },
     "dependencies": {
         "bcrypt": "^6.0.0",
