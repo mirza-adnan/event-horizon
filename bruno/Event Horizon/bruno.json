@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Event Horizon",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -1,0 +1,30 @@
+meta {
+  name: Org Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/organizers/register
+  body: multipartForm
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": ""
+  }
+}
+
+body:multipart-form {
+  name: ABC
+  email: abc@email.com
+  password: testpassword
+  phone: 01234567890
+  proof-document: @file(C:\Users\mirza\Downloads\Images\download.jpg)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
