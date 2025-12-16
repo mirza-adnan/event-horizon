@@ -101,18 +101,16 @@ export const organizerLogin = async (req: Request, res: Response) => {
         .json({ error: "Missing required fields" });
     }
 
-    const existingOrg = await db
+    const [org] = await db
       .select()
       .from(orgsTable)
       .where(eq(orgsTable.email, email));
 
-    if (!existingOrg.length) {
+    if (!org) {
       return res
-        .status(404)
-        .json({ error: "Organizer not found" });
+        .status(401)
+        .json({ error: "Invalid credentials" });
     }
-
-    const [org] = existingOrg;
 
     const isPasswordValid = await bycrpt.compare(password, org.passwordHash);
 
