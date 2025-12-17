@@ -1,6 +1,6 @@
-import NavBar from "../components/HomeNavBar.tsx";
-import HeroSection from "../components/HeroSection.tsx";
-import HomeFooter from "../components/HomeFooter.tsx";
+import NavBar from "../components/HomePage/HomeNavBar.tsx";
+import HeroSection from "../components/HomePage/HeroSection.tsx";
+import HomeFooter from "../components/HomePage/HomeFooter.tsx";
 
 function Home() {
     return (

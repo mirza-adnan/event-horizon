@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import LinkButton from "./LinkButton";
+import LinkButton from "../LinkButton";
 
 function NavLink({children, href}: {children:React.ReactNode, href: string}) {
     return <li>
