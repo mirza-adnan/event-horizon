@@ -6,11 +6,11 @@ export default {
             colors: {
                 accent: "#B4DB6D",
                 "text-strong": "#F3F4F2",
-                "text-weak": "#DADCD6",
+                "text-weak": "#969799",
                 "gray-light": "#A7AAA1",
                 "gray-dark": "#41433D",
                 fill: "#272824",
-                background: "#1A1B18",
+                background: "#0b0b0b",
                 danger: {
                     DEFAULT: "rgb(255, 156, 156)",
                     80: "rgba(255, 156, 156, 0.8)",
