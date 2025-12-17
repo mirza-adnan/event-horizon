@@ -1,9 +1,9 @@
 import LinkButton from "./LinkButton";
 
-const HeroSection = () => {
+function HeroSection() {
     return (
         <div className="flex flex-col items-center justify-start min-h-screen text-center mt-32">
-            <h1 className="text-8xl font-bold mb-4 bg-gradient-to-r from-green-400 to-green-600 text-transparent bg-clip-text">
+            <h1 className="text-8xl font-bold mb-4 bg-gradient-to-r from-accent to-green-400 text-transparent bg-clip-text">
                 Event Horizon
             </h1>
             <h2 className="text-3xl font-bold text-text-strong mb-4">
