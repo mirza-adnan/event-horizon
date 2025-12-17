@@ -1,28 +1,14 @@
-import LinkButton from "../components/LinkButton";
+import NavBar from "../components/HomePage/HomeNavBar.tsx";
+import HeroSection from "../components/HomePage/HeroSection.tsx";
+import HomeFooter from "../components/HomePage/HomeFooter.tsx";
 
 function Home() {
     return (
-        <div className="flex flex-col items-center justify-start min-h-screen text-center p-4 mt-32">
-            <h1 className="text-5xl font-bold text-gray-800 dark:text-white mb-4">
-                Your Centralized Event Platform
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl">
-                Discover, organize, and register for events, from institutional
-                gatherings to multi-segment conferences.
-            </p>
-            <div className="flex gap-4 justify-center items-center">
-                <LinkButton
-                    variant="primary"
-                    path="/signup"
-                >
-                    Signup Today
-                </LinkButton>
-                <LinkButton
-                    variant="tertiary"
-                    path="organizers/registration"
-                >
-                    Join as an Organizer
-                </LinkButton>
+        <div>
+            <NavBar />
+            <div className="max-w-7xl mx-auto pt-5 px-6">
+                <HeroSection />
+                <HomeFooter />
             </div>
         </div>
     );
