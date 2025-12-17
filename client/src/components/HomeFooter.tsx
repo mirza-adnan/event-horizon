@@ -1,5 +1,5 @@
 
-const HomeFooter = () => {
+function HomeFooter() {
     return(
         <footer className="mt-20 border-t py-10 border-accent text-center">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
