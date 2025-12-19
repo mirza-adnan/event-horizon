@@ -4,22 +4,37 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./global.css";
 import App from "./App.tsx";
 import Home from "./pages/Home.tsx";
+import OrgDashboard from "./pages/OrgDashboard.tsx";
+import OrgRegistration from "./pages/OrgRegistration.tsx";
+import LoginSignup from "./pages/LoginSignup.tsx";
 
 const router = createBrowserRouter([
-    {
+  {
+    path: "/",
+    element: <App />,
+    children: [
+      {
         path: "/",
-        element: <App />,
-        children: [
-            {
-                path: "/",
-                element: <Home />,
-            },
-        ],
-    },
+        element: <Home />,
+      },
+      {
+        path: "/signup",
+        element: <LoginSignup />,
+      },
+      {
+        path: "/organizers/registration",
+        element: <OrgRegistration />,
+      },
+      {
+        path: "/organizers/dashboard",
+        element: <OrgDashboard />,
+      },
+    ],
+  },
 ]);
 
 createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-        <RouterProvider router={router} />
-    </StrictMode>
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>
 );
