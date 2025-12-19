@@ -17,6 +17,10 @@ const router = createBrowserRouter([
         element: <Home />,
       },
       {
+        path: "/organizers/registration",
+        element: <OrgRegistration />,
+      },
+      {
         path: "/organizers/dashboard",
         element: <OrgDashboard />,
       },
