@@ -6,6 +6,7 @@ import App from "./App.tsx";
 import Home from "./pages/Home.tsx";
 import OrgDashboard from "./pages/OrgDashboard.tsx";
 import OrgRegistration from "./pages/OrgRegistration.tsx";
+import LoginSignup from "./pages/LoginSignup.tsx";
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,10 @@ const router = createBrowserRouter([
       {
         path: "/",
         element: <Home />,
+      },
+      {
+        path: "/signup",
+        element: <LoginSignup />,
       },
       {
         path: "/organizers/registration",
