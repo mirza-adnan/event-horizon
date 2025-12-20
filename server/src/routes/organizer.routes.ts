@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
     organizerRegister,
     organizerLogin,
+    validateOrganizerBasic,
 } from "../controllers/organizer.controller";
 import { uploadProof } from "../middleware/upload";
 
@@ -13,5 +14,6 @@ organizerRouter.post(
     organizerRegister
 );
 organizerRouter.post("/login", organizerLogin);
+organizerRouter.post("/validate/basic", validateOrganizerBasic);
 
 export default organizerRouter;
