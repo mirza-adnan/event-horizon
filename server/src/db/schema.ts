@@ -79,7 +79,7 @@ export const eventsTable = pgTable("events", {
     .defaultNow(),
 });
 
-export const eventsSegmentsTable = pgTable("events_segments", {
+export const eventSegmentsTable = pgTable("events_segments", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id")
     .notNull()
@@ -105,6 +105,27 @@ export const eventsSegmentsTable = pgTable("events_segments", {
     .defaultNow(),
 });
 
+export const registrationStatus = pgEnum("registration_status", [
+  "confirmed",
+  "cancelled",
+  "waitlisted"
+]);
+
+export const registrationsTable = pgTable("registrations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  segmentId: uuid("segment_id")
+    .notNull()
+    .references(() => eventSegmentsTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  status: registrationStatus("status").notNull().default("waitlisted"),
+  ticketNumber: varchar("ticket_number", { length: 20 }).notNull().unique(),
+  registeredAt: timestamp("registered_at", { withTimezone: true, })
+    .notNull()
+    .defaultNow(),
+});
+
 export type User = InferSelectModel<typeof usersTable>;
 export type NewUser = InferInsertModel<typeof usersTable>;
 
@@ -113,3 +134,9 @@ export type NewOrganizer = InferInsertModel<typeof orgsTable>;
 
 export type Event = InferSelectModel<typeof eventsTable>;
 export type NewEvent = InferInsertModel<typeof eventsTable>;
+
+export type Segment = InferSelectModel<typeof eventSegmentsTable>;
+export type NewSegment = InferInsertModel<typeof eventSegmentsTable>;
+
+export type Registration = InferSelectModel<typeof registrationsTable>;
+export type NewRegistration = InferInsertModel<typeof registrationsTable>;
