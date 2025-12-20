@@ -190,3 +190,63 @@ export async function organizerLogout(req: Request, res: Response) {
         res.status(500).json({ error: "Error in organizer logout" });
     }
 }
+
+export async function validateOrganizerBasic(req: Request, res: Response) {
+    try {
+        const { name, email, phone } = req.body;
+
+        if (!name || !email || !phone) {
+            return res.status(400).json({
+                message: "name, email and phone are required",
+            });
+        }
+
+        const existing = await db
+            .select({
+                name: orgsTable.name,
+                email: orgsTable.email,
+                phone: orgsTable.phone,
+            })
+            .from(orgsTable)
+            .where(
+                or(
+                    eq(orgsTable.name, name),
+                    eq(orgsTable.email, email),
+                    eq(orgsTable.phone, phone)
+                )
+            )
+            .limit(1);
+
+        if (existing.length > 0) {
+            const match = existing[0];
+
+            if (match.name === name) {
+                return res.status(409).json({
+                    field: "name",
+                    message: "Organizer name already exists",
+                });
+            }
+
+            if (match.email === email) {
+                return res.status(409).json({
+                    field: "email",
+                    message: "Email already exists",
+                });
+            }
+
+            if (match.phone === phone) {
+                return res.status(409).json({
+                    field: "phone",
+                    message: "Phone number already exists",
+                });
+            }
+        }
+
+        return res.status(200).json({ ok: true });
+    } catch (err) {
+        console.error("validateOrganizerBasic error:", err);
+        return res.status(500).json({
+            message: "Validation failed",
+        });
+    }
+}

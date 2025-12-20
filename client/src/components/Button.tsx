@@ -1,6 +1,13 @@
 import type { ButtonProps } from "../types";
+import { cn } from "../utils/helpers";
 
-function Button({ variant = "primary", children }: ButtonProps) {
+function Button({
+    variant = "primary",
+    disabled = false,
+    className,
+    children,
+    onClick,
+}: ButtonProps) {
     let classes = "";
 
     if (variant === "primary") {
@@ -13,6 +20,15 @@ function Button({ variant = "primary", children }: ButtonProps) {
             "underline px-1 decoration-accent text-accent underline-offset-4";
     }
 
-    return <button className={classes + " text-base"}>{children}</button>;
+    return (
+        <button
+            disabled={disabled}
+            className={cn(classes, "text-base", className, {
+                "cursor-not-allowed opacity-40": disabled,
+            })}
+        >
+            {children}
+        </button>
+    );
 }
 export default Button;

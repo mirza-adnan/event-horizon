@@ -4,6 +4,9 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./global.css";
 import App from "./App.tsx";
 import Home from "./pages/Home.tsx";
+import OrgDashboard from "./pages/OrgDashboard.tsx";
+import OrgRegistration from "./pages/OrgRegistration.tsx";
+import UserSignup from "./pages/UserSignup.tsx";
 
 const router = createBrowserRouter([
     {
@@ -13,6 +16,18 @@ const router = createBrowserRouter([
             {
                 path: "/",
                 element: <Home />,
+            },
+            {
+                path: "/signup",
+                element: <UserSignup />,
+            },
+            {
+                path: "/organizers/registration",
+                element: <OrgRegistration />,
+            },
+            {
+                path: "/organizers/dashboard",
+                element: <OrgDashboard />,
             },
         ],
     },
