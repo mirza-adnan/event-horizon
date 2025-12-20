@@ -67,21 +67,36 @@ export const eventsTable = pgTable("events", {
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description").notNull(),
   slug: varchar("slug", { length: 255 }).notNull(),
-  location: text("location").notNull(),
-  address: text("address"),
-  city: text("city").notNull(),
-  country: text("country").notNull(),
-  date: timestamp("date", { withTimezone: true, }).notNull(),
-  durationMinutes: integer("duration_minutes").notNull().default(90),
-  isOnline: boolean("is_online").notNull().default(false),
-  maxAttendees: integer("max_attendees"),
-  price: integer("price").default(0),
-  currency: varchar("currency", { length: 3 }).default("BDT"),
-  status: eventStatusEnum("status").notNull().default("draft"),
   bannerUrl: text("banner_url"),
   organizerId: uuid("organizer_id")
     .notNull()
     .references(() => orgsTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true, })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, })
+    .notNull()
+    .defaultNow(),
+});
+
+export const eventsSegmentsTable = pgTable("events_segments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => eventsTable.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  startTime: timestamp("start_time", { withTimezone: true, }).notNull(),
+  durationMinutes: integer("duration_minutes").notNull().default(90),
+  isOnline: boolean("is_online").notNull().default(false),
+  location: text("location").notNull(),
+  address: text("address"),
+  city: text("city").notNull(),
+  country: text("country").notNull(),
+  maxAttendees: integer("max_attendees"),
+  price: integer("price").default(0),
+  currency: varchar("currency", { length: 3 }).notNull().default("BDT"),
+  status: eventStatusEnum("status").notNull().default("draft"),
   createdAt: timestamp("created_at", { withTimezone: true, })
     .notNull()
     .defaultNow(),
