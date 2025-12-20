@@ -71,45 +71,36 @@ export const eventStatusEnum = pgEnum("event_status", [
     "completed",
 ]);
 
-export const eventsTable = pgTable(
-    "events",
-    {
-        id: uuid("id").primaryKey().defaultRandom(),
-        title: text("title").notNull(),
-        description: text("description").notNull(),
-        location: text("location").notNull(),
-        city: text("city").notNull(),
-        country: text("country").notNull().default("Bangladesh"),
-        startDate: date("start_date", {
-            mode: "date",
-        }).notNull(),
-        endDate: date("end_date", {
-            mode: "date",
-        }),
-        registrationDeadline: timestamp("registration_deadline", {
-            precision: 3,
-            withTimezone: true,
-        }),
-        isOnline: boolean("is_online").notNull().default(false),
-        status: eventStatusEnum("status").notNull().default("draft"),
-        bannerUrl: text("banner_url"),
-        organizerId: uuid("organizer_id")
-            .notNull()
-            .references(() => orgsTable.id, { onDelete: "cascade" }),
-        createdAt: timestamp("created_at", { withTimezone: true })
-            .notNull()
-            .defaultNow(),
-        updatedAt: timestamp("updated_at", { withTimezone: true })
-            .notNull()
-            .defaultNow(),
-    },
-    (table) => ({
-        endDateCheck: check(
-            "end_date_check",
-            sql`${table.endDate} IS NULL OR ${table.endDate} >= ${table.startDate}`
-        ),
-    })
-);
+export const eventsTable = pgTable("events", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    location: text("location").notNull(),
+    city: text("city").notNull(),
+    country: text("country").notNull().default("Bangladesh"),
+    startDate: date("start_date", {
+        mode: "date",
+    }).notNull(),
+    endDate: date("end_date", {
+        mode: "date",
+    }),
+    registrationDeadline: timestamp("registration_deadline", {
+        precision: 3,
+        withTimezone: true,
+    }),
+    isOnline: boolean("is_online").notNull().default(false),
+    status: eventStatusEnum("status").notNull().default("draft"),
+    bannerUrl: text("banner_url"),
+    organizerId: uuid("organizer_id")
+        .notNull()
+        .references(() => orgsTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
 
 export const categoriesTable = pgTable("categories", {
     name: varchar("name", { length: 100 }).primaryKey(),
