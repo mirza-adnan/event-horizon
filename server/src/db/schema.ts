@@ -1,4 +1,9 @@
-import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import {
+    InferInsertModel,
+    InferSelectModel,
+    relations,
+    sql,
+} from "drizzle-orm";
 import {
     date,
     pgEnum,
@@ -9,6 +14,9 @@ import {
     varchar,
     integer,
     boolean,
+    check,
+    PgTableExtraConfig,
+    primaryKey,
 } from "drizzle-orm/pg-core";
 
 export const usersTable = pgTable("users", {
@@ -20,6 +28,7 @@ export const usersTable = pgTable("users", {
     lastName: text("last_name"),
     bio: text("bio"),
     phone: text("phone").unique(),
+
     avatarUrl: text("avatar_url"),
     dateOfBirth: date("date_of_birth").notNull(),
     createdAt: timestamp("created_at", {
@@ -56,39 +65,98 @@ export const orgsTable = pgTable("organizers", {
 });
 
 export const eventStatusEnum = pgEnum("event_status", [
-  "draft",
-  "published",
-  "cancelled",
-  "completed",
+    "draft",
+    "published",
+    "cancelled",
+    "completed",
 ]);
 
-export const eventsTable = pgTable("events", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  title: varchar("title", { length: 255 }).notNull(),
-  description: text("description").notNull(),
-  slug: varchar("slug", { length: 255 }).notNull(),
-  location: text("location").notNull(),
-  address: text("address"),
-  city: text("city").notNull(),
-  country: text("country").notNull(),
-  date: timestamp("date", { withTimezone: true, }).notNull(),
-  durationMinutes: integer("duration_minutes").notNull().default(90),
-  isOnline: boolean("is_online").notNull().default(false),
-  maxAttendees: integer("max_attendees"),
-  price: integer("price").default(0),
-  currency: varchar("currency", { length: 3 }).default("BDT"),
-  status: eventStatusEnum("status").notNull().default("draft"),
-  bannerUrl: text("banner_url"),
-  organizerId: uuid("organizer_id")
-    .notNull()
-    .references(() => orgsTable.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true, })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true, })
-    .notNull()
-    .defaultNow(),
+export const eventsTable = pgTable(
+    "events",
+    {
+        id: uuid("id").primaryKey().defaultRandom(),
+        title: text("title").notNull(),
+        description: text("description").notNull(),
+        location: text("location").notNull(),
+        city: text("city").notNull(),
+        country: text("country").notNull().default("Bangladesh"),
+        startDate: date("start_date", {
+            mode: "date",
+        }).notNull(),
+        endDate: date("end_date", {
+            mode: "date",
+        }),
+        registrationDeadline: timestamp("registration_deadline", {
+            precision: 3,
+            withTimezone: true,
+        }),
+        isOnline: boolean("is_online").notNull().default(false),
+        status: eventStatusEnum("status").notNull().default("draft"),
+        bannerUrl: text("banner_url"),
+        organizerId: uuid("organizer_id")
+            .notNull()
+            .references(() => orgsTable.id, { onDelete: "cascade" }),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp("updated_at", { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => ({
+        endDateCheck: check(
+            "end_date_check",
+            sql`${table.endDate} IS NULL OR ${table.endDate} >= ${table.startDate}`
+        ),
+    })
+);
+
+export const categoriesTable = pgTable("categories", {
+    name: varchar("name", { length: 100 }).primaryKey(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const eventCategoriesTable = pgTable(
+    "event_categories",
+    {
+        eventId: uuid("event_id")
+            .notNull()
+            .references(() => eventsTable.id, { onDelete: "cascade" }),
+        categoryName: text("category_name")
+            .notNull()
+            .references(() => categoriesTable.name, { onDelete: "cascade" }),
+        assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+    },
+    (table) => ({
+        pk: primaryKey({ columns: [table.eventId, table.categoryName] }),
+    })
+);
+
+export const eventsRelations = relations(eventsTable, ({ one, many }) => ({
+    organizer: one(orgsTable, {
+        fields: [eventsTable.organizerId],
+        references: [orgsTable.id],
+    }),
+    eventCategories: many(eventCategoriesTable),
+}));
+
+export const categoriesRelations = relations(categoriesTable, ({ many }) => ({
+    eventCategories: many(eventCategoriesTable),
+}));
+
+export const eventCategoriesRelations = relations(
+    eventCategoriesTable,
+    ({ one }) => ({
+        event: one(eventsTable, {
+            fields: [eventCategoriesTable.eventId],
+            references: [eventsTable.id],
+        }),
+        category: one(categoriesTable, {
+            fields: [eventCategoriesTable.categoryName],
+            references: [categoriesTable.name],
+        }),
+    })
+);
 
 export type User = InferSelectModel<typeof usersTable>;
 export type NewUser = InferInsertModel<typeof usersTable>;
@@ -98,3 +166,6 @@ export type NewOrganizer = InferInsertModel<typeof orgsTable>;
 
 export type Event = InferSelectModel<typeof eventsTable>;
 export type NewEvent = InferInsertModel<typeof eventsTable>;
+
+export type Category = InferSelectModel<typeof categoriesTable>;
+export type NewCategory = InferInsertModel<typeof categoriesTable>;

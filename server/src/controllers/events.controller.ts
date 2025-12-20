@@ -1,0 +1,128 @@
+import { Request, Response } from "express";
+import db from "../db";
+import {
+    eventsTable,
+    categoriesTable,
+    eventCategoriesTable,
+} from "../db/schema";
+import { eq, and } from "drizzle-orm";
+
+interface CreateEventRequestBody {
+    title: string;
+    description: string;
+    location: string;
+    city: string;
+    country?: string;
+    startDate: string;
+    endDate?: string;
+    registrationDeadline?: string;
+    isOnline?: boolean;
+    bannerUrl?: string;
+    categoryNames?: string[];
+}
+
+export const createEvent = async (req: Request, res: Response) => {
+    try {
+        const {
+            title,
+            description,
+            location,
+            city,
+            country = "Bangladesh",
+            startDate,
+            endDate,
+            registrationDeadline,
+            isOnline = false,
+            bannerUrl,
+            categoryNames = [], // Default to empty array
+        }: CreateEventRequestBody = req.body;
+
+        // Validate dates
+        if (endDate && new Date(endDate) < new Date(startDate)) {
+            return res.status(400).json({
+                error: "End date must be greater than or equal to start date",
+            });
+        }
+
+        // Check if organizer is authenticated (assuming organizer is attached by middleware)
+        const organizerId = (req as any).organizer?.id;
+        if (!organizerId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        // Validate that provided category names exist
+        if (categoryNames.length > 0) {
+            const existingCategories = await db
+                .select({ name: categoriesTable.name })
+                .from(categoriesTable)
+                .where(
+                    and(
+                        ...categoryNames.map((name) =>
+                            eq(categoriesTable.name, name)
+                        )
+                    )
+                );
+
+            const existingCategoryNames = existingCategories.map(
+                (cat) => cat.name
+            );
+            const missingCategories = categoryNames.filter(
+                (name) => !existingCategoryNames.includes(name)
+            );
+
+            if (missingCategories.length > 0) {
+                return res.status(400).json({
+                    error: `Categories do not exist: ${missingCategories.join(
+                        ", "
+                    )}`,
+                });
+            }
+        }
+
+        const result = await db.transaction(async (tx) => {
+            const [newEvent] = await tx
+                .insert(eventsTable)
+                .values({
+                    title,
+                    description,
+                    location,
+                    city,
+                    country,
+                    startDate: new Date(startDate),
+                    endDate: endDate ? new Date(endDate) : null,
+                    registrationDeadline: registrationDeadline
+                        ? new Date(registrationDeadline)
+                        : null,
+                    isOnline,
+                    bannerUrl,
+                    organizerId,
+                })
+                .returning();
+
+            if (categoryNames.length > 0) {
+                const eventCategoryValues = categoryNames.map(
+                    (categoryName) => ({
+                        eventId: newEvent.id,
+                        categoryName,
+                    })
+                );
+
+                await tx
+                    .insert(eventCategoriesTable)
+                    .values(eventCategoryValues);
+            }
+
+            return newEvent;
+        });
+
+        res.status(201).json({
+            message: "Event created.",
+            event: result,
+        });
+    } catch (error) {
+        console.error("Error creating event:", error);
+        res.status(500).json({
+            error: "Internal server error",
+        });
+    }
+};
