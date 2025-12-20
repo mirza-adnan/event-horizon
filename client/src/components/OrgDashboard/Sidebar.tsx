@@ -28,14 +28,14 @@ function Sidebar() {
 	];
 
 	return (
-		<div className="ml-3 h-screen md:overflow-hidden overflow-auto md:hover:overflow-auto pb-10">
-			<div className="flex justify-between items-center">
+		<div className="h-full md:overflow-hidden overflow-auto md:hover:overflow-auto pb-10 px-3">
+			<div className="flex justify-between items-center mb-4">
 				<Link
 					to="/"
 					onClick={() => {}}
 					className="items-center gap-3 ml-3 mt-4 flex text-xl font-extrabold tracking-tight text-white"
 				>
-					<span>Sidebar</span>
+					<span>Menu</span>
 				</Link>
 			</div>
 
