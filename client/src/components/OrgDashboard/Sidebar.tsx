@@ -1,11 +1,10 @@
 import { Link, NavLink } from "react-router-dom";
 
 function Sidebar() {
-	const isActive = true;
 	const activeLink =
-		"flex item-center gap-5 pl-4 pt-3 pb-2.5 rounded-lg text-white text-md m-2 hover:bg-gray-700 hover:text-gray-100 transition colors";
+		"flex item-center gap-5 pl-4 pt-3 pb-2.5 rounded-lg text-accent font-semibold text-md m-2 bg-fill border border-accent/30 transition-colors";
 	const normalLink =
-		"flex item-center gap-5 pl-4 pt-3 pb-2.5 rounded-lg text-md text-gray-400 hover:text-white m-2 transition colors";
+		"flex item-center gap-5 pl-4 pt-3 pb-2.5 rounded-lg text-md text-text-weak hover:text-accent hover:bg-fill m-2 transition-colors";
 
 	const links = [
 		{
@@ -32,8 +31,7 @@ function Sidebar() {
 			<div className="flex justify-between items-center mb-4">
 				<Link
 					to="/"
-					onClick={() => {}}
-					className="items-center gap-3 ml-3 mt-4 flex text-xl font-extrabold tracking-tight text-white"
+					className="items-center gap-3 ml-3 mt-4 flex text-xl font-extrabold tracking-tight text-accent hover:text-accent/80 transition-colors"
 				>
 					<span>Menu</span>
 				</Link>
@@ -49,7 +47,6 @@ function Sidebar() {
 							<NavLink
 								key={link.link}
 								to={link.link}
-								onClick={() => {}}
 								className={({ isActive }) =>
 									isActive ? activeLink : normalLink
 								}
