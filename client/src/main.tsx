@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./global.css";
 import App from "./App.tsx";
 import Home from "./pages/Home.tsx";
+import CreateEvent from "./pages/CreateEvent.tsx";
 
 const router = createBrowserRouter([
     {
@@ -13,6 +14,10 @@ const router = createBrowserRouter([
             {
                 path: "/",
                 element: <Home />,
+            },
+            {
+                path: "/events/create",
+                element: <CreateEvent />,
             },
         ],
     },
