@@ -58,3 +58,48 @@ export const uploadProof = multer({
         fileSize: 20 * 1024 * 1024, // 20 mb
     },
 });
+
+// Event image upload configuration
+const eventDestDir = path.join(process.cwd(), "uploads", "events");
+if (!fs.existsSync(eventDestDir)) {
+    fs.mkdirSync(eventDestDir, { recursive: true });
+}
+
+const eventStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+        cb(null, eventDestDir);
+    },
+    filename: (req, file, cb) => {
+        const unqSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        const extension = path.extname(file.originalname);
+        cb(null, `event-cover-${unqSuffix}${extension}`);
+    },
+});
+
+const imageFilter = (
+    req: Request,
+    file: Express.Multer.File,
+    cb: multer.FileFilterCallback
+) => {
+    const allowedImages = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+    ];
+
+    if (allowedImages.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Invalid file type. Only images are allowed."));
+    }
+};
+
+export const uploadEventImage = multer({
+    storage: eventStorage,
+    fileFilter: imageFilter,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10 mb
+    },
+});
