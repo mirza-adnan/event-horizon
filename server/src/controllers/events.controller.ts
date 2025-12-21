@@ -34,23 +34,20 @@ export const createEvent = async (req: Request, res: Response) => {
             registrationDeadline,
             isOnline = false,
             bannerUrl,
-            categoryNames = [], // Default to empty array
+            categoryNames = [],
         }: CreateEventRequestBody = req.body;
 
-        // Validate dates
         if (endDate && new Date(endDate) < new Date(startDate)) {
             return res.status(400).json({
-                error: "End date must be greater than or equal to start date",
+                message: "End date must be greater than or equal to start date",
             });
         }
 
-        // Check if organizer is authenticated (assuming organizer is attached by middleware)
         const organizerId = (req as any).organizer?.id;
         if (!organizerId) {
-            return res.status(401).json({ error: "Unauthorized" });
+            return res.status(401).json({ message: "Unauthorized" });
         }
 
-        // Validate that provided category names exist
         if (categoryNames.length > 0) {
             const existingCategories = await db
                 .select({ name: categoriesTable.name })
@@ -72,7 +69,7 @@ export const createEvent = async (req: Request, res: Response) => {
 
             if (missingCategories.length > 0) {
                 return res.status(400).json({
-                    error: `Categories do not exist: ${missingCategories.join(
+                    message: `Categories do not exist: ${missingCategories.join(
                         ", "
                     )}`,
                 });

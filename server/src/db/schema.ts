@@ -75,7 +75,7 @@ export const eventsTable = pgTable("events", {
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title").notNull(),
     description: text("description").notNull(),
-    location: text("location").notNull(),
+    address: text("location").notNull(),
     city: text("city").notNull(),
     country: text("country").notNull().default("Bangladesh"),
     startDate: date("start_date", {
@@ -102,8 +102,32 @@ export const eventsTable = pgTable("events", {
         .defaultNow(),
 });
 
+export const segmentsTable = pgTable("segments", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+    endTime: timestamp("end_time", { withTimezone: true }).notNull(),
+    capacity: integer("capacity").notNull().default(0),
+    isTeamSegment: boolean("is_team_segment").notNull().default(false),
+    eventId: uuid("event_id")
+        .notNull()
+        .references(() => eventsTable.id, { onDelete: "cascade" }),
+    categoryId: varchar("category_id", { length: 100 }).references(
+        () => categoriesTable.name,
+        { onDelete: "set null" }
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
 export const categoriesTable = pgTable("categories", {
     name: varchar("name", { length: 100 }).primaryKey(),
+    slug: varchar("slug", { length: 100 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -129,10 +153,23 @@ export const eventsRelations = relations(eventsTable, ({ one, many }) => ({
         references: [orgsTable.id],
     }),
     eventCategories: many(eventCategoriesTable),
+    segments: many(segmentsTable),
+}));
+
+export const segmentsRelations = relations(segmentsTable, ({ one, many }) => ({
+    event: one(eventsTable, {
+        fields: [segmentsTable.eventId],
+        references: [eventsTable.id],
+    }),
+    category: one(categoriesTable, {
+        fields: [segmentsTable.categoryId],
+        references: [categoriesTable.name],
+    }),
 }));
 
 export const categoriesRelations = relations(categoriesTable, ({ many }) => ({
     eventCategories: many(eventCategoriesTable),
+    segments: many(segmentsTable),
 }));
 
 export const eventCategoriesRelations = relations(
@@ -157,6 +194,9 @@ export type NewOrganizer = InferInsertModel<typeof orgsTable>;
 
 export type Event = InferSelectModel<typeof eventsTable>;
 export type NewEvent = InferInsertModel<typeof eventsTable>;
+
+export type Segment = InferSelectModel<typeof segmentsTable>;
+export type NewSegment = InferInsertModel<typeof segmentsTable>;
 
 export type Category = InferSelectModel<typeof categoriesTable>;
 export type NewCategory = InferInsertModel<typeof categoriesTable>;
