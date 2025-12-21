@@ -7,24 +7,24 @@ import Home from "./pages/Home.tsx";
 import CreateEvent from "./pages/CreateEvent.tsx";
 
 const router = createBrowserRouter([
-    {
+  {
+    path: "/",
+    element: <App />,
+    children: [
+      {
         path: "/",
-        element: <App />,
-        children: [
-            {
-                path: "/",
-                element: <Home />,
-            },
-            {
-                path: "/events/create",
-                element: <CreateEvent />,
-            },
-        ],
-    },
+        element: <Home />,
+      },
+      {
+        path: "/events/create",
+        element: <CreateEvent />,
+      },
+    ],
+  },
 ]);
 
 createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-        <RouterProvider router={router} />
-    </StrictMode>
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>
 );
