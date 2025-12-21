@@ -37,7 +37,7 @@ function Navbar({ onMenuClick }: NavbarProps) {
 							/>
 						</svg>
 					</button>
-					<h1 className="text-2xl font-bold text-accent tracking-wide">
+					<h1 className="text-2xl font-bold text-accent tracking-wide jaro">
 						Organization Dashboard
 					</h1>
 				</div>
