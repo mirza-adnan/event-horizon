@@ -1,4 +1,3 @@
-// client/src/components/ImageUpload.tsx
 import { useState, useRef, useEffect } from "react";
 import { cn } from "../utils/helpers";
 
@@ -7,7 +6,8 @@ interface ImageUploadProps {
     previewUrl?: string;
     label?: string;
     accept?: string;
-    maxSize?: number; // in MB
+    maxSize?: number;
+    name?: string;
 }
 
 export default function ImageUpload({
@@ -16,6 +16,7 @@ export default function ImageUpload({
     label = "Upload Image",
     accept = "image/*",
     maxSize = 10,
+    name = "",
 }: ImageUploadProps) {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
@@ -67,12 +68,10 @@ export default function ImageUpload({
         const droppedFile = e.dataTransfer.files?.[0] || null;
 
         if (droppedFile) {
-            // Create a fake event to reuse validation logic
             const fakeEvent = {
                 target: { files: [droppedFile] },
             } as unknown as React.ChangeEvent<HTMLInputElement>;
 
-            // Create a new FileList-like object
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(droppedFile);
 
@@ -121,6 +120,7 @@ export default function ImageUpload({
                     onChange={handleFileChange}
                     accept={accept}
                     className="hidden"
+                    name={name}
                 />
 
                 {preview ? (
@@ -131,7 +131,7 @@ export default function ImageUpload({
                             className="max-h-64 w-full object-contain rounded-lg"
                         />
 
-                        {/* Hover overlay with delete button */}
+                        {/* delete overlay */}
                         <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                             <button
                                 type="button"

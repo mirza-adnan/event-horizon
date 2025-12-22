@@ -84,11 +84,6 @@ export const eventsTable = pgTable("events", {
     endDate: date("end_date", {
         mode: "date",
     }),
-    registrationDeadline: timestamp("registration_deadline", {
-        precision: 3,
-        withTimezone: true,
-    }),
-    isOnline: boolean("is_online").notNull().default(false),
     status: eventStatusEnum("status").notNull().default("draft"),
     bannerUrl: text("banner_url"),
     organizerId: uuid("organizer_id")
@@ -106,10 +101,21 @@ export const segmentsTable = pgTable("segments", {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     description: text("description").notNull(),
-    startTime: timestamp("start_time", { withTimezone: true }).notNull(),
-    endTime: timestamp("end_time", { withTimezone: true }).notNull(),
+    startTime: timestamp("start_time", {
+        withTimezone: true,
+        mode: "date",
+    }).notNull(),
+    endTime: timestamp("end_time", {
+        withTimezone: true,
+        mode: "date",
+    }).notNull(),
     capacity: integer("capacity").notNull().default(0),
     isTeamSegment: boolean("is_team_segment").notNull().default(false),
+    isOnline: boolean("is_online").notNull().default(false),
+    registrationDeadline: timestamp("registration_deadline", {
+        withTimezone: true,
+        mode: "date",
+    }),
     eventId: uuid("event_id")
         .notNull()
         .references(() => eventsTable.id, { onDelete: "cascade" }),

@@ -10,6 +10,7 @@ export const requireOrganizer = async (
     next: NextFunction
 ) => {
     const token = req.cookies.org_token;
+    console.log(token);
 
     if (!token) {
         return res.status(401).json({ message: "Unauthorized" });

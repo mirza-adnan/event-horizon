@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import db from "../db";
 import { categoriesTable } from "../db/schema";
-import { eq } from "drizzle-orm";
 
 export const getAllCategories = async (req: Request, res: Response) => {
     try {

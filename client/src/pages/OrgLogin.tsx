@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../components/Input";
+import { cn } from "../utils/helpers";
 
-export default function UserLogin() {
+export default function OrgLogin() {
     const [formData, setFormData] = useState({
-        username: "",
+        email: "",
         password: "",
     });
     const [loading, setLoading] = useState(false);
@@ -13,6 +14,8 @@ export default function UserLogin() {
 
     const handleInputChange = (name: string, value: string) => {
         setFormData((prev) => ({ ...prev, [name]: value }));
+        // Clear error when user starts typing
+        if (error) setError(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -22,14 +25,15 @@ export default function UserLogin() {
 
         try {
             const response = await fetch(
-                "http://localhost:5050/api/users/login",
+                "http://localhost:5050/api/organizers/login",
                 {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
+                    credentials: "include",
                     body: JSON.stringify({
-                        username: formData.username,
+                        email: formData.email,
                         password: formData.password,
                     }),
                 }
@@ -38,11 +42,12 @@ export default function UserLogin() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.message || "Login failed");
+                setError(data.error || "Login failed");
                 return;
             }
 
-            navigate("/");
+            // Login successful - redirect to organizer dashboard
+            navigate("/organizers/dashboard");
         } catch (err) {
             setError("An unexpected error occurred");
             console.error("Login error:", err);
@@ -54,16 +59,23 @@ export default function UserLogin() {
     return (
         <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
             <div className="w-full max-w-[560px] bg-zinc-900 rounded-2xl p-8 shadow-xl">
-                {/* header */}
-                <div className="mb-6">
-                    <p className="text-2xl text-text-strong">Welcome Back</p>
-                    <p className="text-sm text-text-weak">
-                        Log in to your Event Horizon account
+                {/* Header */}
+                <div className="mb-8 text-center">
+                    <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-black font-bold text-xl">O</span>
+                    </div>
+                    <h1 className="text-2xl font-bold text-text-strong">
+                        Organizer Login
+                    </h1>
+                    <p className="text-text-weak">
+                        Access your organizer dashboard
                     </p>
                 </div>
 
                 {error && (
-                    <div className="mb-4 text-sm text-red-400">{error}</div>
+                    <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
+                        {error}
+                    </div>
                 )}
 
                 <form
@@ -71,11 +83,12 @@ export default function UserLogin() {
                     className="space-y-6"
                 >
                     <Input
-                        label="Username"
-                        name="username"
-                        value={formData.username}
+                        label="Email"
+                        type="email"
+                        name="email"
+                        value={formData.email}
                         onChange={(e) =>
-                            handleInputChange("username", e.target.value)
+                            handleInputChange("email", e.target.value)
                         }
                         required
                     />
@@ -91,6 +104,7 @@ export default function UserLogin() {
                         required
                     />
 
+                    {/* Submit Button */}
                     <button
                         type="submit"
                         disabled={loading}
@@ -100,23 +114,22 @@ export default function UserLogin() {
                     </button>
                 </form>
 
-                <div className="mt-6">
+                {/* Links */}
+                <div className="mt-8 space-y-4 text-center">
                     <p className="text-text-weak">
-                        Don't have an account?{" "}
+                        Not an official organizer yet? Register{" "}
                         <Link
-                            to="/signup"
+                            to="/organizers/registration"
                             className="text-accent hover:underline"
                         >
-                            Sign up here
+                            here
                         </Link>
                     </p>
-                </div>
 
-                <div className="mt-4">
                     <p className="text-text-weak">
-                        Or login as an organizer{" "}
+                        Or login as a user{" "}
                         <Link
-                            to="/organizers/login"
+                            to="/login"
                             className="text-accent hover:underline"
                         >
                             here

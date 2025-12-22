@@ -4,21 +4,32 @@ import {
     eventsTable,
     categoriesTable,
     eventCategoriesTable,
+    segmentsTable,
 } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 
 interface CreateEventRequestBody {
     title: string;
     description: string;
-    location: string;
+    address: string;
     city: string;
     country?: string;
     startDate: string;
     endDate?: string;
-    registrationDeadline?: string;
-    isOnline?: boolean;
+    status?: "draft" | "published";
     bannerUrl?: string;
     categoryNames?: string[];
+    segments?: Array<{
+        name: string;
+        description: string;
+        startTime: string;
+        endTime: string;
+        capacity: number;
+        categoryId: string;
+        isTeamSegment: boolean;
+        isOnline: boolean;
+        registrationDeadline?: string;
+    }>;
 }
 
 export const createEvent = async (req: Request, res: Response) => {
@@ -26,15 +37,15 @@ export const createEvent = async (req: Request, res: Response) => {
         const {
             title,
             description,
-            location,
+            address,
             city,
             country = "Bangladesh",
             startDate,
             endDate,
-            registrationDeadline,
-            isOnline = false,
+            status = "draft",
             bannerUrl,
             categoryNames = [],
+            segments = [],
         }: CreateEventRequestBody = req.body;
 
         if (endDate && new Date(endDate) < new Date(startDate)) {
@@ -76,21 +87,47 @@ export const createEvent = async (req: Request, res: Response) => {
             }
         }
 
+        // Validate segments if provided
+        if (segments.length > 0) {
+            for (const segment of segments) {
+                if (
+                    segment.endTime &&
+                    new Date(segment.endTime) < new Date(segment.startTime)
+                ) {
+                    return res.status(400).json({
+                        message:
+                            "Segment end time must be greater than or equal to start time",
+                    });
+                }
+
+                if (segment.categoryId) {
+                    // Check if category exists
+                    const [category] = await db
+                        .select({ name: categoriesTable.name })
+                        .from(categoriesTable)
+                        .where(eq(categoriesTable.name, segment.categoryId));
+
+                    if (!category) {
+                        return res.status(400).json({
+                            message: `Category does not exist: ${segment.categoryId}`,
+                        });
+                    }
+                }
+            }
+        }
+
         const result = await db.transaction(async (tx) => {
             const [newEvent] = await tx
                 .insert(eventsTable)
                 .values({
                     title,
                     description,
-                    location,
+                    address,
                     city,
                     country,
                     startDate: new Date(startDate),
                     endDate: endDate ? new Date(endDate) : null,
-                    registrationDeadline: registrationDeadline
-                        ? new Date(registrationDeadline)
-                        : null,
-                    isOnline,
+                    status,
                     bannerUrl,
                     organizerId,
                 })
@@ -107,6 +144,28 @@ export const createEvent = async (req: Request, res: Response) => {
                 await tx
                     .insert(eventCategoriesTable)
                     .values(eventCategoryValues);
+            }
+
+            // Create segments if provided
+            if (segments.length > 0) {
+                console.log("here1");
+                const segmentValues = segments.map((segment) => ({
+                    name: segment.name,
+                    description: segment.description,
+                    startTime: new Date(segment.startTime),
+                    endTime: new Date(segment.endTime),
+                    capacity: segment.capacity,
+                    isTeamSegment: segment.isTeamSegment,
+                    isOnline: segment.isOnline,
+                    registrationDeadline: segment.registrationDeadline
+                        ? new Date(segment.registrationDeadline)
+                        : null,
+                    eventId: newEvent.id,
+                    categoryId: segment.categoryId || null,
+                }));
+
+                await tx.insert(segmentsTable).values(segmentValues);
+                console.log("here2");
             }
 
             return newEvent;

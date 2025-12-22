@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import bycrpt from "bcrypt";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { eq, or } from "drizzle-orm";
 import db from "../db";
@@ -62,7 +62,7 @@ export async function organizerRegister(req: Request, res: Response) {
 
         const proofUrl = `/uploads/organizers/${req.file.filename}`;
 
-        const passwordHash = await bycrpt.hash(password, 10);
+        const passwordHash = await bcrypt.hash(password, 10);
 
         const [newOrg] = await db
             .insert(orgsTable)
@@ -101,6 +101,7 @@ export async function organizerRegister(req: Request, res: Response) {
         res.cookie("org_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
+            sameSite: "none",
             maxAge: 3600000,
         });
 
@@ -135,7 +136,7 @@ export async function organizerLogin(req: Request, res: Response) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        const isPasswordValid = await bycrpt.compare(
+        const isPasswordValid = await bcrypt.compare(
             password,
             org.passwordHash
         );
@@ -156,7 +157,8 @@ export async function organizerLogin(req: Request, res: Response) {
 
         res.cookie("org_token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
+            sameSite: "none",
             maxAge: 3600000,
         });
 
