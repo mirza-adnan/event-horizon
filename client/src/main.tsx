@@ -9,32 +9,32 @@ import OrgRegistration from "./pages/OrgRegistration.tsx";
 import UserSignup from "./pages/UserSignup.tsx";
 
 const router = createBrowserRouter([
-    {
+  {
+    path: "/",
+    element: <App />,
+    children: [
+      {
         path: "/",
-        element: <App />,
-        children: [
-            {
-                path: "/",
-                element: <Home />,
-            },
-            {
-                path: "/signup",
-                element: <UserSignup />,
-            },
-            {
-                path: "/organizers/registration",
-                element: <OrgRegistration />,
-            },
-            {
-                path: "/organizers/dashboard",
-                element: <OrgDashboard />,
-            },
-        ],
-    },
+        element: <Home />,
+      },
+      {
+        path: "/signup",
+        element: <UserSignup />,
+      },
+      {
+        path: "/organizers/registration",
+        element: <OrgRegistration />,
+      },
+      {
+        path: "/organizers/dashboard",
+        element: <OrgDashboard />,
+      },
+    ],
+  },
 ]);
 
 createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-        <RouterProvider router={router} />
-    </StrictMode>
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>
 );
