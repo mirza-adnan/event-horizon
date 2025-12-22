@@ -12,8 +12,15 @@ import OrganizerDashboard from "./components/OrgDashboard/Dashboard.tsx";
 import EventsList from "./components/OrgDashboard/EventsList.tsx";
 import EventCreate from "./components/OrgDashboard/EventCreate.tsx";
 import UserLogin from "./pages/UserLogin.tsx";
-import OrgLogin from "./pages/OrgLogin.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
+import OrgLoginRedirect from "./pages/OrgLoginRedirect.tsx";
+import OrgRegistrationRedirect from "./pages/OrgRegistrationRedirect.tsx";
+import AdminDashboard from "./components/Admin/AdminDashboard.tsx";
+import PendingOrganizers from "./components/Admin/PendingOrganizers.tsx";
+import OrganizerDetails from "./components/Admin/OrganizerDetails.tsx";
+import AdminCategories from "./components/Admin/AdminCategories.tsx";
+import AdminLogin from "./pages/AdminLogin.tsx";
+import AdminProtectedRoute from "./components/Admin/AdminProtectedRoute.tsx";
 
 const router = createBrowserRouter([
     {
@@ -34,11 +41,11 @@ const router = createBrowserRouter([
             },
             {
                 path: "/organizers/registration",
-                element: <OrgRegistration />,
+                element: <OrgRegistrationRedirect />,
             },
             {
                 path: "/organizers/login",
-                element: <OrgLogin />,
+                element: <OrgLoginRedirect />,
             },
             {
                 path: "/organizers/dashboard",
@@ -61,6 +68,25 @@ const router = createBrowserRouter([
                     { path: "event/create", element: <EventCreate /> },
                     { path: "profile", element: <div>Profile Page</div> },
                     { path: "settings", element: <div>Settings Page</div> },
+                ],
+            },
+            {
+                path: "/admin/login",
+                element: <AdminLogin />,
+            },
+            {
+                path: "/admin",
+                element: (
+                    <AdminProtectedRoute>
+                        <AdminDashboard />
+                    </AdminProtectedRoute>
+                ),
+                children: [
+                    { index: true, element: <PendingOrganizers /> },
+                    { path: "dashboard", element: <PendingOrganizers /> },
+                    { path: "pending", element: <PendingOrganizers /> },
+                    { path: "pending/:id", element: <OrganizerDetails /> },
+                    { path: "categories", element: <AdminCategories /> },
                 ],
             },
         ],

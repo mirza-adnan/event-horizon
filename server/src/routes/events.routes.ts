@@ -8,7 +8,7 @@ const eventsRouter = Router();
 eventsRouter.post(
     "/create",
     requireOrganizer,
-    uploadEventBanner.single("event-banner"),
+    uploadEventBanner.any(),
     createEvent
 );
 

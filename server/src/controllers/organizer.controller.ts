@@ -5,17 +5,12 @@ import { eq, or } from "drizzle-orm";
 import db from "../db";
 import { orgsTable } from "../db/schema";
 import fs from "fs";
+import sendConfirmationEmail from "../utils/sendEmail";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-export async function organizerRegister(req: Request, res: Response) {
+export const organizerRegister = async (req: Request, res: Response) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({
-                message: "Proof of existence is required",
-            });
-        }
-
         const {
             name,
             email,
@@ -27,72 +22,60 @@ export async function organizerRegister(req: Request, res: Response) {
             website,
             description,
         } = req.body;
+        const proofFile = req.file; // This is the uploaded file object from multer
 
-        if (!name || !email || !password || !phone) {
-            fs.unlinkSync(req.file.path);
-            return res.status(400).json({ error: "Missing required fields" });
+        if (!name || !email || !password || !phone || !proofFile) {
+            return res
+                .status(400)
+                .json({ message: "All required fields must be provided" });
         }
 
-        const existingOrg = await db
+        // Make the file path relative to the uploads directory
+        const relativePath = proofFile.path
+            .replace(process.cwd(), "")
+            .replace(/\\/g, "/");
+
+        const [existingOrg] = await db
             .select()
             .from(orgsTable)
             .where(
                 or(
+                    eq(orgsTable.name, name),
                     eq(orgsTable.email, email),
-                    eq(orgsTable.phone, phone),
-                    eq(orgsTable.name, name)
+                    eq(orgsTable.phone, phone)
                 )
             );
 
-        if (existingOrg.length > 0) {
-            fs.unlinkSync(req.file.path);
-            let problem = "";
-            if (existingOrg[0].name === name) {
-                problem = "name";
-            } else if (existingOrg[0].email === email) {
-                problem = "email";
-            } else if (existingOrg[0].phone === phone) {
-                problem = "phone number";
-            }
-
-            return res.status(409).json({
-                message: `An organier with this ${problem} already exists.`,
-            });
+        if (existingOrg) {
+            return res
+                .status(409)
+                .json({
+                    message:
+                        "Organizer with this name, email, or phone already exists",
+                });
         }
 
-        const proofUrl = `/uploads/organizers/${req.file.filename}`;
-
-        const passwordHash = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const [newOrg] = await db
             .insert(orgsTable)
             .values({
                 name,
                 email,
-                passwordHash,
+                passwordHash: hashedPassword,
                 phone,
                 address,
                 city,
                 country,
                 website,
                 description,
-                proofUrl,
-                status: "pending",
+                proofUrl: relativePath, // Store the relative path
+                verified: false,
             })
-            .returning({
-                id: orgsTable.id,
-                name: orgsTable.name,
-                email: orgsTable.email,
-                phone: orgsTable.phone,
-                address: orgsTable.address,
-                city: orgsTable.city,
-                country: orgsTable.country,
-                website: orgsTable.website,
-                description: orgsTable.description,
-                proofUrl: orgsTable.proofUrl,
-                status: orgsTable.status,
-                createdAt: orgsTable.createdAt,
-            });
+            .returning();
+
+        // Send confirmation email
+        sendConfirmationEmail(newOrg.name, newOrg.email, newOrg.id);
 
         const token = jwt.sign({ orgId: newOrg.id }, JWT_SECRET, {
             expiresIn: "1h",
@@ -101,23 +84,25 @@ export async function organizerRegister(req: Request, res: Response) {
         res.cookie("org_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "none",
             maxAge: 3600000,
         });
 
         res.status(201).json({
             message:
-                "Your registration is successful and is pending admin approval",
-            organizer: newOrg,
+                "Organizer registered successfully. Please check your email to verify your account.",
+            organizer: {
+                id: newOrg.id,
+                name: newOrg.name,
+                email: newOrg.email,
+                status: newOrg.status,
+                verified: newOrg.verified,
+            },
         });
     } catch (error) {
-        if (req.file) {
-            fs.unlinkSync(req.file.path);
-        }
-        console.error("Error in organizer registration:", error);
-        res.status(500).json({ error: "Error in organizer registration" });
+        console.error("Organizer registration error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
-}
+};
 
 export async function organizerLogin(req: Request, res: Response) {
     try {
@@ -145,10 +130,22 @@ export async function organizerLogin(req: Request, res: Response) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        if (org.status == "rejected") {
+        // Check if the organizer's email is verified
+        if (!org.verified) {
+            return res.status(403).json({
+                error: "Email not verified. Please check your email.",
+            });
+        }
+
+        // Check if the organizer account is rejected
+        if (org.status === "rejected") {
             return res
                 .status(403)
                 .json({ error: "Organizer account is rejected" });
+        } else if (org.status === "pending") {
+            return res
+                .status(403)
+                .json({ error: "Organizer account is pending admin approval" });
         }
 
         const token = jwt.sign({ orgId: org.id }, JWT_SECRET, {
@@ -157,8 +154,7 @@ export async function organizerLogin(req: Request, res: Response) {
 
         res.cookie("org_token", token, {
             httpOnly: true,
-            secure: true,
-            sameSite: "none",
+            secure: process.env.NODE_ENV === "production",
             maxAge: 3600000,
         });
 
@@ -174,22 +170,13 @@ export async function organizerLogin(req: Request, res: Response) {
                 website: org.website,
                 description: org.description,
                 status: org.status,
+                verified: org.verified,
                 createdAt: org.createdAt,
             },
         });
     } catch (error) {
-        console.error("Error in orgaizer login:", error);
+        console.error("Error in organizer login:", error);
         res.status(500).json({ error: "Error in organizer login" });
-    }
-}
-
-export async function organizerLogout(req: Request, res: Response) {
-    try {
-        res.clearCookie("org_token");
-        res.status(200).send();
-    } catch (error) {
-        console.error("Error in organizer logout:", error);
-        res.status(500).json({ error: "Error in organizer logout" });
     }
 }
 
@@ -252,3 +239,41 @@ export async function validateOrganizerBasic(req: Request, res: Response) {
         });
     }
 }
+
+export const verifyOrganizerEmail = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Find the organizer by ID
+        const [organizer] = await db
+            .select()
+            .from(orgsTable)
+            .where(eq(orgsTable.id, id));
+
+        if (!organizer) {
+            return res.status(404).json({
+                message: "Organizer not found",
+            });
+        }
+
+        // Check if already verified
+        if (organizer.verified) {
+            // Redirect to frontend login if already verified
+            return res.redirect(302, "http://localhost:5173/organizers/login");
+        }
+
+        // Update the organizer's verified status
+        await db
+            .update(orgsTable)
+            .set({ verified: true })
+            .where(eq(orgsTable.id, id));
+
+        // Redirect to frontend login after successful verification
+        res.redirect(302, "http://localhost:5173/organizers/login");
+    } catch (error) {
+        console.error("Email verification error:", error);
+        res.status(500).json({
+            message: "Internal server error",
+        });
+    }
+};

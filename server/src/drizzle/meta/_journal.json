@@ -50,6 +50,13 @@
       "when": 1766419831118,
       "tag": "0006_nappy_valkyrie",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766423124188,
+      "tag": "0007_round_roughhouse",
+      "breakpoints": true
     }
   ]
 }

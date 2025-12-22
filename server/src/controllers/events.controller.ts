@@ -6,34 +6,11 @@ import {
     eventCategoriesTable,
     segmentsTable,
 } from "../db/schema";
-import { eq, and } from "drizzle-orm";
-
-interface CreateEventRequestBody {
-    title: string;
-    description: string;
-    address: string;
-    city: string;
-    country?: string;
-    startDate: string;
-    endDate?: string;
-    status?: "draft" | "published";
-    bannerUrl?: string;
-    categoryNames?: string[];
-    segments?: Array<{
-        name: string;
-        description: string;
-        startTime: string;
-        endTime: string;
-        capacity: number;
-        categoryId: string;
-        isTeamSegment: boolean;
-        isOnline: boolean;
-        registrationDeadline?: string;
-    }>;
-}
+import { eq, and, or } from "drizzle-orm";
 
 export const createEvent = async (req: Request, res: Response) => {
     try {
+        // Extract fields from the request body
         const {
             title,
             description,
@@ -43,10 +20,42 @@ export const createEvent = async (req: Request, res: Response) => {
             startDate,
             endDate,
             status = "draft",
-            bannerUrl,
-            categoryNames = [],
-            segments = [],
-        }: CreateEventRequestBody = req.body;
+        } = req.body;
+
+        // Handle categoryNames - it can come as a string, array, or multiple fields
+        let categoryNames: string[] = [];
+        if (req.body.categoryNames) {
+            if (Array.isArray(req.body.categoryNames)) {
+                categoryNames = req.body.categoryNames;
+            } else if (typeof req.body.categoryNames === "string") {
+                categoryNames = [req.body.categoryNames];
+            }
+        }
+
+        // Handle segments - it can come as a string or array
+        let segments: Array<{
+            name: string;
+            description: string;
+            startTime: string;
+            endTime: string;
+            capacity: number;
+            categoryId: string;
+            isTeamSegment: boolean;
+            isOnline: boolean;
+            registrationDeadline?: string;
+        }> = [];
+        if (req.body.segments) {
+            if (typeof req.body.segments === "string") {
+                try {
+                    segments = JSON.parse(req.body.segments);
+                } catch (parseError) {
+                    // If it's not JSON, it might be an array of objects already
+                    segments = req.body.segments;
+                }
+            } else if (Array.isArray(req.body.segments)) {
+                segments = req.body.segments;
+            }
+        }
 
         if (endDate && new Date(endDate) < new Date(startDate)) {
             return res.status(400).json({
@@ -59,15 +68,25 @@ export const createEvent = async (req: Request, res: Response) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
+        // Handle banner file upload if present
+        let bannerUrl: string | undefined;
+        if (req.file) {
+            // Convert absolute path to relative path
+            bannerUrl = req.file.path
+                .replace(process.cwd(), "")
+                .replace(/\\/g, "/");
+        }
+
         if (categoryNames.length > 0) {
             const existingCategories = await db
                 .select({ name: categoriesTable.name })
                 .from(categoriesTable)
                 .where(
-                    and(
-                        ...categoryNames.map((name) =>
-                            eq(categoriesTable.name, name)
-                        )
+                    or(
+                        ...categoryNames.map((name) => {
+                            console.log("name", name);
+                            return eq(categoriesTable.name, name);
+                        })
                     )
                 );
 
@@ -77,6 +96,9 @@ export const createEvent = async (req: Request, res: Response) => {
             const missingCategories = categoryNames.filter(
                 (name) => !existingCategoryNames.includes(name)
             );
+
+            console.log(existingCategories);
+            console.log(existingCategoryNames);
 
             if (missingCategories.length > 0) {
                 return res.status(400).json({
@@ -128,7 +150,7 @@ export const createEvent = async (req: Request, res: Response) => {
                     startDate: new Date(startDate),
                     endDate: endDate ? new Date(endDate) : null,
                     status,
-                    bannerUrl,
+                    bannerUrl, // Use the relative path
                     organizerId,
                 })
                 .returning();

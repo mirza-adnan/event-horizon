@@ -110,6 +110,7 @@ export default function OrgRegistrationForm() {
                 {
                     method: "POST",
                     body: fd,
+                    // credentials: "include",
                 }
             );
 

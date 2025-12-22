@@ -1,4 +1,3 @@
-// client/src/pages/organizer/EventCreate.tsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import EventBasicInfo from "./EventBasicInfo";
@@ -198,43 +197,35 @@ export default function EventCreate() {
         setError(null);
 
         try {
-            // Create FormData for multipart request
             const formData = new FormData();
 
             // Add basic info
-            Object.entries(basicInfo).forEach(([key, value]) => {
-                if (value !== undefined && value !== null) {
-                    formData.append(key, value.toString());
-                }
-            });
-
-            // Add status
+            formData.append("title", basicInfo.title);
+            formData.append("description", basicInfo.description);
+            formData.append("address", basicInfo.address);
+            formData.append("city", basicInfo.city);
+            formData.append("country", basicInfo.country);
+            formData.append("startDate", basicInfo.startDate);
+            if (basicInfo.endDate)
+                formData.append("endDate", basicInfo.endDate);
             formData.append("status", status);
 
             // Add banner file if exists
             if (bannerFile) {
-                formData.append("event-banner", bannerFile);
+                formData.append("banner", bannerFile);
             }
 
-            // Add selected categories (only non-empty ones)
+            // Add selected categories - append each as a separate field
             selectedCategories
                 .filter((cat) => cat.trim() !== "")
                 .forEach((category) => {
                     formData.append("categoryNames", category);
                 });
 
-            // Add segments
-            segments.forEach((segment, index) => {
-                Object.entries(segment).forEach(([key, value]) => {
-                    // Skip the ID field as it's client-side only
-                    if (key !== "id") {
-                        formData.append(
-                            `segments[${index}][${key}]`,
-                            value.toString()
-                        );
-                    }
-                });
-            });
+            // Add segments as JSON string
+            if (segments.length > 0) {
+                formData.append("segments", JSON.stringify(segments));
+            }
 
             const response = await fetch(
                 "http://localhost:5050/api/events/create",
