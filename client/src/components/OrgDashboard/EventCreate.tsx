@@ -1,3 +1,4 @@
+// client/src/pages/organizer/EventCreate.tsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import EventBasicInfo from "./EventBasicInfo";
