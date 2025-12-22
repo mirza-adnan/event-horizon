@@ -43,6 +43,13 @@
       "when": 1766340645722,
       "tag": "0005_real_carnage",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766419831118,
+      "tag": "0006_nappy_valkyrie",
+      "breakpoints": true
     }
   ]
 }

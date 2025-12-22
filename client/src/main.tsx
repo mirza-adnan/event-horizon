@@ -1,3 +1,4 @@
+// client/src/main.tsx
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -11,6 +12,8 @@ import OrganizerDashboard from "./components/OrgDashboard/Dashboard.tsx";
 import EventsList from "./components/OrgDashboard/EventsList.tsx";
 import EventCreate from "./components/OrgDashboard/EventCreate.tsx";
 import UserLogin from "./pages/UserLogin.tsx";
+import OrgLogin from "./pages/OrgLogin.tsx";
+import ProtectedRoute from "./components/ProtectedRoute.tsx";
 
 const router = createBrowserRouter([
     {
@@ -34,12 +37,24 @@ const router = createBrowserRouter([
                 element: <OrgRegistration />,
             },
             {
+                path: "/organizers/login",
+                element: <OrgLogin />,
+            },
+            {
                 path: "/organizers/dashboard",
-                element: <OrgDashboard />,
+                element: (
+                    <ProtectedRoute>
+                        <OrgDashboard />
+                    </ProtectedRoute>
+                ),
             },
             {
                 path: "/organizers",
-                element: <OrganizerDashboard />,
+                element: (
+                    <ProtectedRoute>
+                        <OrganizerDashboard />
+                    </ProtectedRoute>
+                ),
                 children: [
                     { index: true, element: <EventsList /> },
                     { path: "dashboard", element: <EventsList /> },

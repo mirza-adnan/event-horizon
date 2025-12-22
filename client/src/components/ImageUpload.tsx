@@ -8,6 +8,7 @@ interface ImageUploadProps {
     label?: string;
     accept?: string;
     maxSize?: number; // in MB
+    name?: string;
 }
 
 export default function ImageUpload({
@@ -16,6 +17,7 @@ export default function ImageUpload({
     label = "Upload Image",
     accept = "image/*",
     maxSize = 10,
+    name = "",
 }: ImageUploadProps) {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
@@ -121,6 +123,7 @@ export default function ImageUpload({
                     onChange={handleFileChange}
                     accept={accept}
                     className="hidden"
+                    name={name}
                 />
 
                 {preview ? (
