@@ -32,6 +32,8 @@ export default function CreateEvent() {
     status: "draft",
   });
 
+  const [postalCode, setPostalCode] = useState("");
+
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,6 +62,49 @@ export default function CreateEvent() {
     }
   };
 
+  const validateDates = (): string | null => {
+    const now = new Date();
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+
+    if (!formData.startDate || !formData.endDate) {
+      return "Start and end dates are required";
+    }
+
+    if (start < now) {
+      return "Start date cannot be in the past";
+    }
+
+    if (end <= start) {
+      return "End date must be after start date";
+    }
+
+    // Check if event duration is reasonable (not more than 30 days)
+    const durationDays =
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    if (durationDays > 30) {
+      return "Event duration cannot exceed 30 days";
+    }
+
+    return null;
+  };
+
+  const getEventDuration = (): string => {
+    if (!formData.startDate || !formData.endDate) return "";
+
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const durationMs = end.getTime() - start.getTime();
+    const hours = Math.floor(durationMs / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) {
+      const remainingHours = hours % 24;
+      return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+    }
+    return `${hours}h`;
+  };
+
   const handleSubmit = async (
     e: FormEvent,
     publishStatus: EventStatus = "draft"
@@ -68,6 +113,21 @@ export default function CreateEvent() {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
+
+    // Validate dates
+    const dateError = validateDates();
+    if (dateError) {
+      setError(dateError);
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate ticket price
+    if (formData.ticketPrice && parseFloat(formData.ticketPrice) < 0) {
+      setError("Ticket price cannot be negative");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const formDataToSend = new FormData();
@@ -79,6 +139,7 @@ export default function CreateEvent() {
       formDataToSend.append("category", formData.category);
       formDataToSend.append("venue", formData.venue);
       formDataToSend.append("address", formData.address);
+      if (postalCode) formDataToSend.append("postalCode", postalCode);
       formDataToSend.append("city", formData.city);
       formDataToSend.append("country", formData.country);
       formDataToSend.append("startDate", formData.startDate);
@@ -106,29 +167,35 @@ export default function CreateEvent() {
         throw new Error(data.error || "Failed to create event");
       }
 
-      setSuccess(
+      const successMsg =
         publishStatus === "published"
           ? "Event created and published successfully!"
-          : "Event saved as draft!"
-      );
+          : "Event saved as draft!";
 
-      // Reset form
-      setFormData({
-        title: "",
-        description: "",
-        category: "other",
-        venue: "",
-        address: "",
-        city: "",
-        country: "",
-        startDate: "",
-        endDate: "",
-        ticketPrice: "",
-        maxAttendees: undefined,
-        status: "draft",
-      });
-      setCoverImage(null);
-      setImagePreview(null);
+      setSuccess(`${successMsg} Event ID: ${data.event.id}`);
+
+      // Reset form after a delay
+      setTimeout(() => {
+        setFormData({
+          title: "",
+          description: "",
+          category: "other",
+          venue: "",
+          address: "",
+          city: "",
+          country: "",
+          startDate: "",
+          endDate: "",
+          ticketPrice: "",
+          maxAttendees: undefined,
+          status: "draft",
+        });
+        setPostalCode("");
+        setCoverImage(null);
+        setImagePreview(null);
+        setSuccess(null);
+        window.scrollTo(0, 0);
+      }, 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -272,7 +339,7 @@ export default function CreateEvent() {
                   />
                 </div>
 
-                <div>
+                <div className="md:col-span-2">
                   <label
                     htmlFor="address"
                     className="block text-sm font-medium text-gray-700 mb-1"
@@ -307,6 +374,24 @@ export default function CreateEvent() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="City"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="postalCode"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Postal Code / ZIP
+                  </label>
+                  <input
+                    type="text"
+                    id="postalCode"
+                    name="postalCode"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="e.g., 10001"
                   />
                 </div>
 
@@ -351,6 +436,7 @@ export default function CreateEvent() {
                     name="startDate"
                     value={formData.startDate}
                     onChange={handleInputChange}
+                    min={new Date().toISOString().slice(0, 16)}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
@@ -369,11 +455,22 @@ export default function CreateEvent() {
                     name="endDate"
                     value={formData.endDate}
                     onChange={handleInputChange}
+                    min={
+                      formData.startDate ||
+                      new Date().toISOString().slice(0, 16)
+                    }
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
               </div>
+
+              {formData.startDate && formData.endDate && (
+                <p className="mt-2 text-sm text-gray-600">
+                  Event duration:{" "}
+                  <span className="font-semibold">{getEventDuration()}</span>
+                </p>
+              )}
             </div>
 
             {/* Ticket Info */}
