@@ -7,6 +7,7 @@ import Home from "./pages/Home.tsx";
 import OrgDashboard from "./pages/OrgDashboard.tsx";
 import OrgRegistration from "./pages/OrgRegistration.tsx";
 import UserSignup from "./pages/UserSignup.tsx";
+import Login from "./pages/Login.tsx"
 
 const router = createBrowserRouter([
   {
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
         path: "/organizers/dashboard",
         element: <OrgDashboard />,
       },
+    {
+        path: "/login",
+        element: <Login />
+    }
     ],
   },
 ]);

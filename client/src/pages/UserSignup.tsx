@@ -14,7 +14,7 @@ const UserSignup = () => {
     success: "rgb(119, 119, 175)",
   };
 
-  const container = {
+  const container: CSSProperties = {
     display: "flex",
     minHeight: "100vh",
     fontFamily: "sans-serif",
