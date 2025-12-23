@@ -238,3 +238,22 @@ export const createEvent = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const getMyEvents = async (req: Request, res: Response) => {
+    try {
+        const organizerId = (req as any).organizer?.id;
+        if (!organizerId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const events = await db
+            .select()
+            .from(eventsTable)
+            .where(eq(eventsTable.organizerId, organizerId));
+
+        res.json({ events });
+    } catch (error) {
+        console.error("Error fetching events:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
