@@ -1,3 +1,4 @@
+// client/src/components/organizer/EventSegments.tsx
 import { useState } from "react";
 import EventSegment from "./EventSegment";
 
@@ -18,6 +19,8 @@ interface Segment {
     isTeamSegment: boolean;
     isOnline: boolean;
     registrationDeadline: string;
+    minTeamSize?: number;
+    maxTeamSize?: number;
 }
 
 interface EventSegmentsProps {
@@ -30,6 +33,7 @@ interface EventSegmentsProps {
         field: keyof Segment,
         value: string | number | boolean
     ) => void;
+    errors: Record<number, Record<string, string>>;
 }
 
 export default function EventSegments({
@@ -38,6 +42,7 @@ export default function EventSegments({
     onAddSegment,
     onRemoveSegment,
     onUpdateSegment,
+    errors,
 }: EventSegmentsProps) {
     return (
         <div className="space-y-6">
@@ -58,17 +63,29 @@ export default function EventSegments({
                 </button>
             </div>
 
-            {segments.map((segment, index) => (
-                <EventSegment
-                    key={segment.id}
-                    segment={segment}
-                    index={index}
-                    availableCategories={availableCategories}
-                    onUpdateSegment={onUpdateSegment}
-                    onRemoveSegment={onRemoveSegment}
-                    isRemovable={segments.length > 1}
-                />
-            ))}
+            {segments.length === 0 ? (
+                <div className="text-center py-8 border border-zinc-700 rounded-lg">
+                    <p className="text-text-weak">
+                        No segments added yet. Click "Add Segment" to get
+                        started.
+                    </p>
+                </div>
+            ) : (
+                segments.map((segment) => (
+                    <EventSegment
+                        key={segment.id}
+                        segment={segment}
+                        index={
+                            segments.findIndex((s) => s.id === segment.id) + 1
+                        }
+                        availableCategories={availableCategories}
+                        onUpdateSegment={onUpdateSegment}
+                        onRemoveSegment={onRemoveSegment}
+                        isRemovable={segments.length > 1}
+                        errors={errors[segment.id] || {}}
+                    />
+                ))
+            )}
         </div>
     );
 }

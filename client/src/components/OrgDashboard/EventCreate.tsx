@@ -1,3 +1,4 @@
+// client/src/pages/organizer/EventCreate.tsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import EventBasicInfo from "./EventBasicInfo";
@@ -22,6 +23,8 @@ interface Segment {
     isTeamSegment: boolean;
     isOnline: boolean;
     registrationDeadline: string;
+    minTeamSize?: number;
+    maxTeamSize?: number;
 }
 
 export default function EventCreate() {
@@ -53,20 +56,15 @@ export default function EventCreate() {
     const [loadingCategories, setLoadingCategories] = useState(true);
 
     // Form state for segments
-    const [segments, setSegments] = useState<Segment[]>([
-        {
-            id: 1,
-            name: "",
-            description: "",
-            startTime: "",
-            endTime: "",
-            capacity: 0,
-            categoryId: "",
-            isTeamSegment: false,
-            isOnline: false,
-            registrationDeadline: "",
-        },
-    ]);
+    const [segments, setSegments] = useState<Segment[]>([]);
+
+    // Validation errors
+    const [basicInfoErrors, setBasicInfoErrors] = useState<
+        Record<string, string>
+    >({});
+    const [segmentErrors, setSegmentErrors] = useState<
+        Record<number, Record<string, string>>
+    >({});
 
     // Fetch categories from the backend on component mount
     useEffect(() => {
@@ -93,8 +91,92 @@ export default function EventCreate() {
         fetchCategories();
     }, []);
 
+    // Validate basic info fields
+    const validateBasicInfo = () => {
+        const errors: Record<string, string> = {};
+
+        if (!basicInfo.title.trim()) errors.title = "Title is required";
+        if (!basicInfo.description.trim())
+            errors.description = "Description is required";
+        if (!basicInfo.address.trim()) errors.address = "Address is required";
+        if (!basicInfo.city.trim()) errors.city = "City is required";
+        if (!basicInfo.startDate) errors.startDate = "Start date is required";
+
+        if (
+            basicInfo.endDate &&
+            new Date(basicInfo.startDate) > new Date(basicInfo.endDate)
+        ) {
+            errors.endDate = "End date must be after start date";
+        }
+
+        setBasicInfoErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    // Validate segments
+    const validateSegments = () => {
+        const errors: Record<number, Record<string, string>> = {};
+        let isValid = true;
+
+        segments.forEach((segment) => {
+            const segmentErrors: Record<string, string> = {};
+
+            if (!segment.name.trim())
+                segmentErrors.name = "Segment name is required";
+            if (!segment.startTime)
+                segmentErrors.startTime = "Start time is required";
+            if (!segment.endTime)
+                segmentErrors.endTime = "End time is required";
+
+            if (segment.startTime && segment.endTime) {
+                const start = new Date(segment.startTime).getTime();
+                const end = new Date(segment.endTime).getTime();
+
+                if (start >= end) {
+                    segmentErrors.endTime = "End time must be after start time";
+                }
+            }
+
+            if (segment.isTeamSegment) {
+                if (!segment.minTeamSize || segment.minTeamSize < 1) {
+                    segmentErrors.minTeamSize =
+                        "Min team size must be at least 1";
+                }
+                if (!segment.maxTeamSize || segment.maxTeamSize < 1) {
+                    segmentErrors.maxTeamSize =
+                        "Max team size must be at least 1";
+                }
+                if (
+                    segment.minTeamSize &&
+                    segment.maxTeamSize &&
+                    segment.minTeamSize > segment.maxTeamSize
+                ) {
+                    segmentErrors.maxTeamSize =
+                        "Max team size cannot be less than min team size";
+                }
+            }
+
+            if (Object.keys(segmentErrors).length > 0) {
+                errors[segment.id] = segmentErrors;
+                isValid = false;
+            }
+        });
+
+        setSegmentErrors(errors);
+        return isValid;
+    };
+
     const handleBasicInfoChange = (name: string, value: string) => {
         setBasicInfo((prev) => ({ ...prev, [name]: value }));
+
+        // Clear error when user starts typing
+        if (basicInfoErrors[name]) {
+            setBasicInfoErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
     };
 
     const handleBannerChange = (file: File | null) => {
@@ -152,12 +234,34 @@ export default function EventCreate() {
                 segment.id === id ? { ...segment, [field]: value } : segment
             )
         );
+
+        // Clear error when user updates the field
+        if (segmentErrors[id] && segmentErrors[id][field]) {
+            setSegmentErrors((prev) => {
+                const newErrors = { ...prev };
+                const segmentError = { ...newErrors[id] };
+                delete segmentError[field];
+
+                if (Object.keys(segmentError).length === 0) {
+                    delete newErrors[id];
+                } else {
+                    newErrors[id] = segmentError;
+                }
+
+                return newErrors;
+            });
+        }
     };
 
     const removeSegment = (id: number) => {
-        if (segments.length > 1) {
-            setSegments((prev) => prev.filter((segment) => segment.id !== id));
-        }
+        setSegments((prev) => prev.filter((segment) => segment.id !== id));
+
+        // Clear errors for this segment
+        setSegmentErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors[id];
+            return newErrors;
+        });
     };
 
     // Reset all form fields
@@ -174,25 +278,45 @@ export default function EventCreate() {
         setBannerFile(null);
         setBannerUrl(null);
         setSelectedCategories([]);
-        setSegments([
-            {
-                id: 1,
-                name: "",
-                description: "",
-                startTime: "",
-                endTime: "",
-                capacity: 0,
-                categoryId: "",
-                isTeamSegment: false,
-                isOnline: false,
-                registrationDeadline: "",
-            },
-        ]);
+        setSegments([]);
+        setBasicInfoErrors({});
+        setSegmentErrors({});
         setError(null);
     };
 
     // Submit event with specified status
     const submitEvent = async (status: "draft" | "published") => {
+        // Validate basic info
+        if (!validateBasicInfo()) {
+            setActiveTab("basic");
+            setError("Please fix the errors in the Basic Info section");
+            return;
+        }
+
+        // Validate segments
+        if (!validateSegments()) {
+            setActiveTab("segments");
+            setError("Please fix the errors in the Segments section");
+            return;
+        }
+
+        // Check if at least one segment exists
+        if (segments.length === 0) {
+            setActiveTab("segments");
+            setError("At least one segment is required");
+            return;
+        }
+
+        // Check if at least one category is selected (for published events)
+        if (
+            status === "published" &&
+            selectedCategories.filter((cat) => cat.trim() !== "").length === 0
+        ) {
+            setActiveTab("categories");
+            setError("At least one category is required for published events");
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
@@ -269,10 +393,6 @@ export default function EventCreate() {
         { id: "segments", label: "Segments" },
     ];
 
-    useEffect(() => {
-        console.log("Selected categories:", selectedCategories);
-    }, [selectedCategories]);
-
     return (
         <div className="max-w-4xl mx-auto min-h-[100dvh] flex flex-col">
             <div className="mb-8">
@@ -322,6 +442,7 @@ export default function EventCreate() {
                             bannerUrl={bannerUrl}
                             onBasicInfoChange={handleBasicInfoChange}
                             onBannerChange={handleBannerChange}
+                            errors={basicInfoErrors}
                         />
                     )}
 
@@ -343,6 +464,7 @@ export default function EventCreate() {
                             onAddSegment={addSegment}
                             onRemoveSegment={removeSegment}
                             onUpdateSegment={updateSegment}
+                            errors={segmentErrors}
                         />
                     )}
                 </div>

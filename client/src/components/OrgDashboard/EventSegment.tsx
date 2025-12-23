@@ -20,6 +20,8 @@ interface Segment {
     isTeamSegment: boolean;
     isOnline: boolean;
     registrationDeadline: string;
+    minTeamSize?: number;
+    maxTeamSize?: number;
 }
 
 interface EventSegmentProps {
@@ -33,6 +35,7 @@ interface EventSegmentProps {
     ) => void;
     onRemoveSegment: (id: number) => void;
     isRemovable: boolean;
+    errors: Record<string, string>;
 }
 
 export default function EventSegment({
@@ -42,11 +45,12 @@ export default function EventSegment({
     onUpdateSegment,
     onRemoveSegment,
     isRemovable,
+    errors,
 }: EventSegmentProps) {
     return (
         <div className="border border-zinc-700 rounded-lg p-4">
             <div className="flex justify-between items-center mb-4">
-                <h4 className="font-medium">Segment {index + 1}</h4>
+                <h4 className="font-medium">Segment {index}</h4>
                 {isRemovable && (
                     <button
                         type="button"
@@ -73,9 +77,18 @@ export default function EventSegment({
                                 )
                             }
                             placeholder="e.g., Tech Quiz, Hackathon, Workshop"
-                            className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
+                            className={`w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ${
+                                errors.name
+                                    ? "ring-red-500"
+                                    : "ring-[#373737] focus:ring-accent"
+                            }`}
                             required
                         />
+                        {errors.name && (
+                            <p className="text-red-400 text-sm">
+                                {errors.name}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex items-center space-x-3">
@@ -94,6 +107,63 @@ export default function EventSegment({
                         <label className="text-text-weak">Team Segment</label>
                     </div>
 
+                    {segment.isTeamSegment && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col space-y-2">
+                                <label className="block">Min Team Size</label>
+                                <input
+                                    type="number"
+                                    value={segment.minTeamSize || ""}
+                                    onChange={(e) =>
+                                        onUpdateSegment(
+                                            segment.id,
+                                            "minTeamSize",
+                                            parseInt(e.target.value) || 0
+                                        )
+                                    }
+                                    className={`w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ${
+                                        errors.minTeamSize
+                                            ? "ring-red-500"
+                                            : "ring-[#373737] focus:ring-accent"
+                                    }`}
+                                    min="1"
+                                    placeholder="Min team size"
+                                />
+                                {errors.minTeamSize && (
+                                    <p className="text-red-400 text-sm">
+                                        {errors.minTeamSize}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex flex-col space-y-2">
+                                <label className="block">Max Team Size</label>
+                                <input
+                                    type="number"
+                                    value={segment.maxTeamSize || ""}
+                                    onChange={(e) =>
+                                        onUpdateSegment(
+                                            segment.id,
+                                            "maxTeamSize",
+                                            parseInt(e.target.value) || 0
+                                        )
+                                    }
+                                    className={`w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ${
+                                        errors.maxTeamSize
+                                            ? "ring-red-500"
+                                            : "ring-[#373737] focus:ring-accent"
+                                    }`}
+                                    min="1"
+                                    placeholder="Max team size"
+                                />
+                                {errors.maxTeamSize && (
+                                    <p className="text-red-400 text-sm">
+                                        {errors.maxTeamSize}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex flex-col space-y-2">
                         <label className="block">Start Time</label>
                         <input
@@ -106,9 +176,18 @@ export default function EventSegment({
                                     e.target.value
                                 )
                             }
-                            className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
+                            className={`w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ${
+                                errors.startTime
+                                    ? "ring-red-500"
+                                    : "ring-[#373737] focus:ring-accent"
+                            }`}
                             required
                         />
+                        {errors.startTime && (
+                            <p className="text-red-400 text-sm">
+                                {errors.startTime}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex flex-col space-y-2">
@@ -124,6 +203,7 @@ export default function EventSegment({
                                 )
                             }
                             className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
+                            min="0"
                         />
                     </div>
 
@@ -169,6 +249,7 @@ export default function EventSegment({
                             ))}
                         </select>
                     </div>
+
                     <div className="flex items-center space-x-3">
                         <input
                             type="checkbox"
@@ -185,7 +266,6 @@ export default function EventSegment({
                         <label className="text-text-weak">Online Segment</label>
                     </div>
 
-                    <div className=""></div>
                     <div className="flex flex-col space-y-2">
                         <label className="block">End Time</label>
                         <input
@@ -198,9 +278,18 @@ export default function EventSegment({
                                     e.target.value
                                 )
                             }
-                            className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
+                            className={`w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ${
+                                errors.endTime
+                                    ? "ring-red-500"
+                                    : "ring-[#373737] focus:ring-accent"
+                            }`}
                             required
                         />
+                        {errors.endTime && (
+                            <p className="text-red-400 text-sm">
+                                {errors.endTime}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
