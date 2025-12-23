@@ -18,7 +18,8 @@ export default function StepDetails({ form, onChange }: any) {
             <Input
                 label="Country"
                 value={form.country}
-                onChange={(e) => onChange("country", e.target.value)}
+                disabled
+                className="cursor-not-allowed opacity-70"
             />
 
             <Input
@@ -35,7 +36,7 @@ export default function StepDetails({ form, onChange }: any) {
                     value={form.description}
                     onChange={(e) => onChange("description", e.target.value)}
                     className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white
-                     border border-zinc-700 focus:border-accent outline-none"
+                    border border-zinc-700 focus:border-accent outline-none"
                 />
             </div>
         </div>

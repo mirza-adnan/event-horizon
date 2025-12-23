@@ -4,11 +4,10 @@ export default function StepBasic({ form, onChange }: any) {
     return (
         <div className="space-y-5">
             <Input
-                type="text"
                 label="Organization Name"
                 value={form.name}
                 onChange={(e) => onChange("name", e.target.value)}
-                required={true}
+                required
             />
 
             <Input
@@ -16,15 +15,16 @@ export default function StepBasic({ form, onChange }: any) {
                 type="email"
                 value={form.email}
                 onChange={(e) => onChange("email", e.target.value)}
-                required={true}
+                required
             />
 
             <Input
-                type="tel"
                 label="Phone"
+                type="tel"
                 value={form.phone}
                 onChange={(e) => onChange("phone", e.target.value)}
-                required={true}
+                placeholder=""
+                required
             />
 
             <Input
@@ -32,7 +32,7 @@ export default function StepBasic({ form, onChange }: any) {
                 type="password"
                 value={form.password}
                 onChange={(e) => onChange("password", e.target.value)}
-                required={true}
+                required
             />
         </div>
     );
