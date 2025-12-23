@@ -117,6 +117,8 @@ export const segmentsTable = pgTable("segments", {
         withTimezone: true,
         mode: "date",
     }),
+    minTeamSize: integer("min_team_size"),
+    maxTeamSize: integer("max_team_size"),
     eventId: uuid("event_id")
         .notNull()
         .references(() => eventsTable.id, { onDelete: "cascade" }),

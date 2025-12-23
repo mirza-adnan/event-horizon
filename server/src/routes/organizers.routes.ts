@@ -88,4 +88,9 @@ organizerRouter.patch("/:id/reject", requireAdmin, async (req, res) => {
     }
 });
 
+organizerRouter.post("/logout", (req, res) => {
+    res.clearCookie("org_token");
+    res.json({ message: "Logged out successfully" });
+});
+
 export default organizerRouter;

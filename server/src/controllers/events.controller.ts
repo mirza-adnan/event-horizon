@@ -43,6 +43,8 @@ export const createEvent = async (req: Request, res: Response) => {
             isTeamSegment: boolean;
             isOnline: boolean;
             registrationDeadline?: string;
+            minTeamSize?: number;
+            maxTeamSize?: number;
         }> = [];
         if (req.body.segments) {
             if (typeof req.body.segments === "string") {
@@ -135,6 +137,36 @@ export const createEvent = async (req: Request, res: Response) => {
                         });
                     }
                 }
+
+                // Validate team size fields if isTeamSegment is true
+                if (segment.isTeamSegment) {
+                    if (
+                        segment.minTeamSize === undefined ||
+                        segment.minTeamSize < 1
+                    ) {
+                        return res.status(400).json({
+                            message:
+                                "Min team size must be at least 1 for team segments",
+                        });
+                    }
+
+                    if (
+                        segment.maxTeamSize === undefined ||
+                        segment.maxTeamSize < 1
+                    ) {
+                        return res.status(400).json({
+                            message:
+                                "Max team size must be at least 1 for team segments",
+                        });
+                    }
+
+                    if (segment.minTeamSize > segment.maxTeamSize) {
+                        return res.status(400).json({
+                            message:
+                                "Min team size cannot be greater than max team size",
+                        });
+                    }
+                }
             }
         }
 
@@ -182,6 +214,8 @@ export const createEvent = async (req: Request, res: Response) => {
                     registrationDeadline: segment.registrationDeadline
                         ? new Date(segment.registrationDeadline)
                         : null,
+                    minTeamSize: segment.minTeamSize || null,
+                    maxTeamSize: segment.maxTeamSize || null,
                     eventId: newEvent.id,
                     categoryId: segment.categoryId || null,
                 }));
@@ -202,5 +236,24 @@ export const createEvent = async (req: Request, res: Response) => {
         res.status(500).json({
             error: "Internal server error",
         });
+    }
+};
+
+export const getMyEvents = async (req: Request, res: Response) => {
+    try {
+        const organizerId = (req as any).organizer?.id;
+        if (!organizerId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const events = await db
+            .select()
+            .from(eventsTable)
+            .where(eq(eventsTable.organizerId, organizerId));
+
+        res.json({ events });
+    } catch (error) {
+        console.error("Error fetching events:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };

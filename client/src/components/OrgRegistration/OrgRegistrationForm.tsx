@@ -7,6 +7,9 @@ import StepReview from "./StepReview";
 
 const STEPS = ["Basic Info", "Details", "Proof", "Review"];
 
+// Bangladesh phone number regex
+const BD_PHONE_REGEX = /^(?:\+?880|0)1[3-9]\d{8}$/;
+
 export default function OrgRegistrationForm() {
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -20,7 +23,7 @@ export default function OrgRegistrationForm() {
         phone: "",
         address: "",
         city: "",
-        country: "",
+        country: "Bangladesh",
         website: "",
         description: "",
     });
@@ -33,27 +36,40 @@ export default function OrgRegistrationForm() {
 
     async function nextStep() {
         setError(null);
-        console.log(showSuccess);
 
+        // STEP 0: Basic validation
         if (step === 0) {
-            await validateStepOne();
-        } else if (step === 2) {
-            if (!proofFile) {
-                setError("Proof of existence is required to proceed");
+            if (
+                !form.name.trim() ||
+                !form.email.trim() ||
+                !form.phone.trim() ||
+                !form.password.trim()
+            ) {
+                setError("Please fill in all required fields");
                 return;
             }
-            setStep((s) => s + 1);
-        } else {
-            setStep((s) => s + 1);
+
+            if (!BD_PHONE_REGEX.test(form.phone)) {
+                setError("Enter a valid Bangladeshi phone number");
+                return;
+            }
+
+            await validateStepOne();
+            return;
         }
+
+        // STEP 2: Proof required
+        if (step === 2 && !proofFile) {
+            setError("Proof of existence is required to proceed");
+            return;
+        }
+
+        setStep((s) => s + 1);
     }
 
     function prevStep() {
         setError(null);
-        console.log(showSuccess);
-        if (step - 1 < STEPS.length - 1 && showSuccess) {
-            setShowSuccess(false);
-        }
+        if (showSuccess) setShowSuccess(false);
         setStep((s) => s - 1);
     }
 
@@ -95,8 +111,6 @@ export default function OrgRegistrationForm() {
             return;
         }
 
-        console.log(showSuccess);
-
         setLoading(true);
         setError(null);
 
@@ -110,7 +124,6 @@ export default function OrgRegistrationForm() {
                 {
                     method: "POST",
                     body: fd,
-                    // credentials: "include",
                 }
             );
 
@@ -121,9 +134,7 @@ export default function OrgRegistrationForm() {
                 return;
             }
 
-            if (step === STEPS.length - 1) {
-                setShowSuccess(true);
-            }
+            setShowSuccess(true);
         } catch {
             setError("Something went wrong");
         } finally {
@@ -144,6 +155,7 @@ export default function OrgRegistrationForm() {
                         </p>
                     </div>
                 )}
+
                 <ProgressBar
                     currentStep={showSuccess ? 4 : step}
                     steps={STEPS}
@@ -153,81 +165,38 @@ export default function OrgRegistrationForm() {
                     <div className="mb-4 text-sm text-red-400">{error}</div>
                 )}
 
-                {/* Success content - stays within the form box */}
                 {step === 3 && showSuccess && (
                     <div className="text-center py-8">
-                        <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-8 w-8 text-black"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M5 13l4 4L19 7"
-                                />
-                            </svg>
-                        </div>
-
                         <h3 className="text-xl font-semibold text-white mb-2">
                             Registration Complete!
                         </h3>
-
-                        <p className="text-zinc-300 mb-6">
-                            Please check your email to verify your account. Once
-                            verified, your registration will be pending admin
-                            approval.
+                        <p className="text-zinc-300">
+                            Please check your email to verify your account.
                         </p>
-
-                        <div className="bg-zinc-800 rounded-lg p-4 text-left">
-                            <p className="text-sm text-zinc-400">
-                                <strong>What happens next:</strong>
-                            </p>
-                            <ul className="mt-2 space-y-1 text-sm text-zinc-300">
-                                <li className="flex items-start">
-                                    <span className="text-accent mr-2">•</span>
-                                    <span>
-                                        Email verification sent to {form.email}
-                                    </span>
-                                </li>
-                                <li className="flex items-start">
-                                    <span className="text-accent mr-2">•</span>
-                                    <span>Admin review process begins</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <span className="text-accent mr-2">•</span>
-                                    <span>
-                                        You'll receive an email when approved
-                                    </span>
-                                </li>
-                            </ul>
-                        </div>
                     </div>
                 )}
 
-                {/* Regular steps */}
                 {!showSuccess && step === 0 && (
                     <StepBasic
                         form={form}
                         onChange={updateField}
                     />
                 )}
+
                 {!showSuccess && step === 1 && (
                     <StepDetails
                         form={form}
                         onChange={updateField}
                     />
                 )}
+
                 {!showSuccess && step === 2 && (
                     <StepProof
                         file={proofFile}
                         setFile={setProofFile}
                     />
                 )}
+
                 {!showSuccess && step === 3 && (
                     <StepReview
                         form={form}
@@ -245,7 +214,7 @@ export default function OrgRegistrationForm() {
                         </button>
                     )}
 
-                    {!showSuccess && step < STEPS.length - 1 && (
+                    {!showSuccess && step < 3 && (
                         <button
                             onClick={nextStep}
                             disabled={loading}

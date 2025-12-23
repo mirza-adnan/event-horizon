@@ -1,110 +1,152 @@
-import { Link, useLocation } from "react-router-dom";
+// client/src/components/OrgDashboard/Sidebar.tsx
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "../../utils/helpers";
+import {
+    FaCalendarAlt,
+    FaPlus,
+    FaUser,
+    FaCog,
+    FaSignOutAlt,
+} from "react-icons/fa";
+
+interface Organizer {
+    id: string;
+    name: string;
+    email: string;
+    status: string;
+    verified: boolean;
+    createdAt: string;
+}
 
 const navItems = [
     {
         name: "Events",
-        icon: (
-            <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 17V7m0 10v6m6-2a3 3 0 100-6v6zm2-15H5M12 6v6M5 6h14v4H5V6z"
-                />
-            </svg>
-        ),
+        icon: <FaCalendarAlt className="w-5 h-5" />,
         path: "/organizers/dashboard",
     },
     {
         name: "Create Event",
-        icon: (
-            <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-            </svg>
-        ),
+        icon: <FaPlus className="w-5 h-5" />,
         path: "/organizers/event/create",
     },
     {
         name: "Profile",
-        icon: (
-            <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 017 7h0M12 14a7 7 0 007 7h0M12 14v6m-6 0a7 7 0 007 7h0M6 14a7 7 0 017-7h0"
-                />
-            </svg>
-        ),
+        icon: <FaUser className="w-5 h-5" />,
         path: "/organizers/dashboard/profile",
     },
     {
         name: "Settings",
-        icon: (
-            <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10.325 4.317c.426-.426 1.002-.426 1.428 0l1.58 1.58c1.496 1.496 3.808 1.304 5.212-.203 1.404-1.507 1.404-3.818 0-5.325L18.5 4.317c-.426-.426-1.002-.426-1.428 0l-1.58 1.58c-1.496 1.496-3.808 1.304-5.212-.203-1.404-1.507-1.404-3.818 0-5.325l1.58-1.58c.426-.426 1.002-.426 1.428 0l-1.58 1.58c1.496 1.496 3.808 1.304 5.212-.203 1.404-1.507 1.404-3.818 0-5.325L18.5 4.317c-.426-.426-1.002-.426-1.428 0l-1.58 1.58c-1.496 1.496-3.808 1.304-5.212-.203-1.404-1.507-1.404-3.818 0-5.325l1.58-1.58c.426-.426 1.002-.426 1.428 0l1.58 1.58c1.496 1.496 3.808 1.304 5.212-.203 1.404-1.507 1.404-3.818 0-5.325L18.5 4.317c-.426-.426-1.002-.426-1.428 0l-1.58 1.58c-1.496 1.496-3.808 1.304-5.212-.203-1.404-1.507-1.404-3.818 0-5.325l1.58-1.58c.426-.426 1.002-.426 1.428 0l1.58 1.58c1.496 1.496 3.808 1.304 5.212-.203 1.404-1.507 1.404-3.818 0-5.325L18.5 4.317c-.426-.426-1.002-.426-1.428 0l-1.58 1.58c-1.496 1.496-3.808 1.304-5.212-.203-1.404-1.507-1.404-3.818 0-5.325l1.58-1.58c.426-.426 1.002-.426 1.428 0l1.58 1.58c1.496 1.496 3.808 1.304 5.212-.203 1.404-1.507 1.404-3.818 0-5.325L18.5 4.317c-.426-.426-1.002-.426-1.428 0l-1.58 1.58c-1.496 1.496-3.808 1.304-5.212-.203-1.404-1.507-1.404-3.818 0-5.325l1.58-1.58c.426-.426 1.002-.426 1.428 0l1.58 1.58c1.496 1.496 3.808 1.304 5.212-.203 1.404-1.507 1.404-3.818 0-5.325L18.5 4.317c-.426-.426-1.002-.426-1.428 0l-1.58 1.58c-1.496 1.496-3.808 1.304-5.212-.203-1.404-1.507-1.404-3.818 0-5.325l1.58-1.58c.426-.426 1.002-.426 1.428 0l1.58 1.58c1.496 1.496 3.808 1.304 5.212-.203 1.404-1.507 1.404-3.818 0-5.325L18.5 4.317c-.426-.426-1.002-.426-1.428 0l-1.58 1.58c-1.496 1.496-3.808 1.304-5.212-.203-1.404-1.507-1.404-3.818 0-5.325l1.58-1.58c.426-.426 1.002-.426 1.428 0l1.58 1.58c1.496 1.496 3.808 1.304 5.212-.203 1.404-1.507 1.404-3.818 0-5.325L18.5 4.317c-.426-.426-1.002-.426-1.428 0l-1.58 1.58c-1.496 1.496-3.808 1.304-5.212-.203-1.404-1.507-......"
-                />
-            </svg>
-        ),
+        icon: <FaCog className="w-5 h-5" />,
         path: "/organizers/dashboard/settings",
     },
 ];
 
 export default function Sidebar() {
     const location = useLocation();
+    const navigate = useNavigate();
+    const [organizer, setOrganizer] = useState<Organizer | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOrganizer = async () => {
+            try {
+                const response = await fetch(
+                    "http://localhost:5050/api/organizers/me",
+                    {
+                        credentials: "include",
+                    }
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setOrganizer(data);
+                } else {
+                    console.error("Failed to fetch organizer info");
+                }
+            } catch (error) {
+                console.error("Error fetching organizer:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOrganizer();
+    }, []);
+
+    const handleLogout = async () => {
+        try {
+            const response = await fetch(
+                "http://localhost:5050/api/organizers/logout",
+                {
+                    method: "POST",
+                    credentials: "include",
+                }
+            );
+
+            if (response.ok) {
+                navigate("/");
+            } else {
+                console.error("Logout failed");
+            }
+        } catch (error) {
+            console.error("Error during logout:", error);
+        }
+    };
+
+    if (loading) {
+        return (
+            <aside className="w-64 bg-zinc-900 border-r border-zinc-800 min-h-screen flex flex-col">
+                <div className="p-6 border-b border-zinc-800">
+                    <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-accent rounded flex items-center justify-center">
+                            <span className="text-black font-bold text-sm">
+                                O
+                            </span>
+                        </div>
+                        <h1 className="text-lg font-semibold">Loading...</h1>
+                    </div>
+                </div>
+            </aside>
+        );
+    }
 
     return (
         <aside className="w-64 bg-zinc-900 border-r border-zinc-800 min-h-screen flex flex-col">
             {/* Header */}
             <div className="p-6 border-b border-zinc-800">
-                <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-accent rounded flex items-center justify-center">
-                        <span className="text-black font-bold text-sm">O</span>
+                <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-accent rounded flex items-center justify-center">
+                            <span className="text-black font-bold text-sm">
+                                O
+                            </span>
+                        </div>
+                        <h1 className="text-lg font-semibold">
+                            {organizer?.name || "Organizer"}
+                        </h1>
                     </div>
-                    <h1 className="text-lg font-semibold">
-                        Organizer Dashboard
-                    </h1>
+                    <p className="text-xs text-text-weak truncate">
+                        {organizer?.email}
+                    </p>
+                    <button
+                        onClick={handleLogout}
+                        className="mt-3 flex items-center space-x-2 px-3 py-2 rounded-md text-text-weak hover:bg-zinc-800 transition-colors"
+                    >
+                        <FaSignOutAlt className="w-4 h-4" />
+                        <span>Logout</span>
+                    </button>
                 </div>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 py-4 px-3 space-y-1">
+            <nav className="flex-1 py-4 px-3 space-y-4">
                 {navItems.map((item) => (
                     <Link
                         key={item.path}
                         to={item.path}
                         className={cn(
-                            "flex items-center space-x-3 px-3 py-2 rounded-md transition-colors",
+                            "flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-sm",
                             location.pathname === item.path
                                 ? "bg-accent text-black"
                                 : "hover:bg-zinc-800"

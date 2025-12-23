@@ -5,7 +5,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./global.css";
 import App from "./App.tsx";
 import Home from "./pages/Home.tsx";
-import OrgDashboard from "./pages/OrgDashboard.tsx";
+import OrgDashboard from "./pages/OrgDashboard.tsx"; // You might want to rename this to avoid confusion
 import OrgRegistration from "./pages/OrgRegistration.tsx";
 import UserSignup from "./pages/UserSignup.tsx";
 import OrganizerDashboard from "./components/OrgDashboard/Dashboard.tsx";
@@ -47,14 +47,7 @@ const router = createBrowserRouter([
                 path: "/organizers/login",
                 element: <OrgLoginRedirect />,
             },
-            {
-                path: "/organizers/dashboard",
-                element: (
-                    <ProtectedRoute>
-                        <OrgDashboard />
-                    </ProtectedRoute>
-                ),
-            },
+            // Remove the /organizers/dashboard route
             {
                 path: "/organizers",
                 element: (
