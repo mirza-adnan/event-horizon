@@ -17,7 +17,7 @@ export default function AdminSidebar() {
     const location = useLocation();
 
     return (
-        <aside className="w-64 bg-zinc-900 border-r border-zinc-800 h-screen flex flex-col">
+        <aside className="w-64 bg-zinc-900 border-r border-zinc-800 h-screen sticky top-0 flex flex-col">
             {/* Header */}
             <div className="p-6 border-b border-zinc-800">
                 <div className="flex items-center space-x-2">
@@ -29,7 +29,7 @@ export default function AdminSidebar() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 py-4 px-3 space-y-1">
+            <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
                 {navItems.map((item) => (
                     <Link
                         key={item.path}

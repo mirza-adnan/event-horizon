@@ -30,7 +30,10 @@ export default function EventBasicInfo({
     return (
         <div className="space-y-6">
             <div className="space-y-2">
-                <label className="block ml-1">Event Title *</label>
+                <label className="block ml-1">
+                    Event Title {"  "}
+                    <span className="text-danger">*</span>
+                </label>
                 <input
                     type="text"
                     value={basicInfo.title}
@@ -61,7 +64,10 @@ export default function EventBasicInfo({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <label className="block ml-1">Address *</label>
+                    <label className="block ml-1">
+                        Address{"  "}
+                        <span className="text-danger">*</span>
+                    </label>
                     <input
                         type="text"
                         value={basicInfo.address}
@@ -81,7 +87,10 @@ export default function EventBasicInfo({
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block ml-1">City *</label>
+                    <label className="block ml-1">
+                        City{"  "}
+                        <span className="text-danger">*</span>
+                    </label>
                     <input
                         type="text"
                         value={basicInfo.city}
@@ -118,7 +127,10 @@ export default function EventBasicInfo({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <label className="block ml-1">Start Date *</label>
+                    <label className="block ml-1">
+                        Start Date {"  "}
+                        <span className="text-danger">*</span>
+                    </label>
                     <input
                         type="date"
                         value={basicInfo.startDate}
@@ -159,7 +171,10 @@ export default function EventBasicInfo({
             </div>
 
             <div className="space-y-2">
-                <label className="block ml-1">Description *</label>
+                <label className="block ml-1">
+                    Description {"  "}
+                    <span className="text-danger">*</span>
+                </label>
                 <textarea
                     value={basicInfo.description}
                     onChange={(e) =>

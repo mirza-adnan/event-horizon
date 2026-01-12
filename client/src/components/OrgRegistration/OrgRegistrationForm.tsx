@@ -171,7 +171,9 @@ export default function OrgRegistrationForm() {
                             Registration Complete!
                         </h3>
                         <p className="text-zinc-300">
-                            Please check your email to verify your account.
+                            Please check your email to verify your account. Once
+                            verified, your registration will be awaiting admin
+                            approval.
                         </p>
                     </div>
                 )}
