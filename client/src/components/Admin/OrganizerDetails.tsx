@@ -101,13 +101,13 @@ export default function OrganizerDetails() {
                 <div className="space-x-3">
                     <button
                         onClick={handleApprove}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                        className="px-4 py-2 bg-green-200 text-black rounded-lg hover:bg-green-400"
                     >
                         Approve
                     </button>
                     <button
                         onClick={handleReject}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        className="px-4 py-2 bg-danger text-black rounded-lg hover:bg-danger-80"
                     >
                         Reject
                     </button>

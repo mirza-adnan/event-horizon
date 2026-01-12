@@ -483,14 +483,6 @@ export default function EventCreate() {
                     <div className="flex space-x-4">
                         <button
                             type="button"
-                            onClick={() => navigate("/organizer/dashboard")}
-                            className="px-6 py-2 rounded-lg bg-zinc-800 text-text-weak font-medium"
-                            disabled={loading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="button"
                             onClick={handleSaveDraft}
                             disabled={loading}
                             className="px-6 py-2 rounded-lg bg-zinc-800 text-text-weak font-medium"
