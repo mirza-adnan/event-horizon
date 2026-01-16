@@ -156,6 +156,24 @@ export const eventCategoriesTable = pgTable(
     })
 );
 
+// [Scraper Feature]
+export const scrapedEventsTable = pgTable("scraped_events", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description"),
+    url: text("url").notNull(),
+    source: text("source").notNull(),
+    imageUrl: text("image_url"),
+    organizer: text("organizer"),
+    location: text("location"),
+    prize: text("prize"),
+    participants: text("participants"),
+    startDate: timestamp("start_date", { withTimezone: true }),
+    scrapedAt: timestamp("scraped_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
 export const eventsRelations = relations(eventsTable, ({ one, many }) => ({
     organizer: one(orgsTable, {
         fields: [eventsTable.organizerId],
@@ -209,3 +227,6 @@ export type NewSegment = InferInsertModel<typeof segmentsTable>;
 
 export type Category = InferSelectModel<typeof categoriesTable>;
 export type NewCategory = InferInsertModel<typeof categoriesTable>;
+
+export type ScrapedEvent = InferSelectModel<typeof scrapedEventsTable>;
+export type NewScrapedEvent = InferInsertModel<typeof scrapedEventsTable>;

@@ -1,13 +1,13 @@
 services:
     postgres:
         image: postgres:16-alpine
-        container_name: my_postgres
+        container_name: event_horizon_db
         restart: always
         environment:
             POSTGRES_USER: postgres
             POSTGRES_PASSWORD: postgres
             POSTGRES_DB: event_horizon
-            POSTGRES_HOST_AUTH_METHOD: md5 # Use md5 instead of trust for better security
+            POSTGRES_HOST_AUTH_METHOD: md5
         ports:
             - "5433:5432"
         volumes:
@@ -17,6 +17,30 @@ services:
             interval: 10s
             timeout: 5s
             retries: 5
+
+    server:
+        build: ./server
+        container_name: event_horizon_server
+        restart: always
+        env_file:
+            - ./server/.env
+        environment:
+            - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/event_horizon
+            - PORT=5050
+        ports:
+            - "5050:5050"
+        depends_on:
+            postgres:
+                condition: service_healthy
+
+    client:
+        build: ./client
+        container_name: event_horizon_client
+        restart: always
+        ports:
+            - "5173:80"
+        depends_on:
+            - server
 
 volumes:
     postgres_data:

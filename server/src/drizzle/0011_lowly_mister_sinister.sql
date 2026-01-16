@@ -1,0 +1,1 @@
+ALTER TABLE "scraped_events" ADD COLUMN "organizer" text;

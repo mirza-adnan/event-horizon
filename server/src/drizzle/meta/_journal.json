@@ -64,6 +64,27 @@
       "when": 1766467263690,
       "tag": "0008_futuristic_whirlwind",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768406550211,
+      "tag": "0009_heavy_fixer",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1768477084869,
+      "tag": "0010_curly_spiral",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1768477508253,
+      "tag": "0011_lowly_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

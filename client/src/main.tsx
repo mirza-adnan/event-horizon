@@ -21,6 +21,7 @@ import OrganizerDetails from "./components/Admin/OrganizerDetails.tsx";
 import AdminCategories from "./components/Admin/AdminCategories.tsx";
 import AdminLogin from "./pages/AdminLogin.tsx";
 import AdminProtectedRoute from "./components/Admin/AdminProtectedRoute.tsx";
+import Discover from "./pages/Discover.tsx";
 
 const router = createBrowserRouter([
     {
@@ -38,6 +39,10 @@ const router = createBrowserRouter([
             {
                 path: "/login",
                 element: <UserLogin />,
+            },
+            {
+                path: "/discover",
+                element: <Discover />,
             },
             {
                 path: "/organizers/registration",
