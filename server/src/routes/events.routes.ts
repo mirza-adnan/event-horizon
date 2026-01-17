@@ -23,6 +23,7 @@ router.post("/scrape-facebook", requireOrganizer, scrapeFacebookEvent);
 router.get("/scrape-external-events", scrapeExternalEvents);
 
 // New Routes
-
+router.get("/:id", requireOrganizer, getEventById);
+router.put("/:id", requireOrganizer, uploadEventBanner.single("banner"), updateEvent);
 
 export default router;

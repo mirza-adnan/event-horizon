@@ -11,6 +11,10 @@ const navItems = [
         name: "Categories",
         path: "/admin/categories",
     },
+    {
+        name: "External Events",
+        path: "/admin/external-events",
+    },
 ];
 
 export default function AdminSidebar() {

@@ -27,6 +27,10 @@ function NavBar() {
             link: "/about",
         },
         {
+            name: "Explore",
+            link: "/explore",
+        },
+        {
             name: "Features",
             link: "/features",
         },
