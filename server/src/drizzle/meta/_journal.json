@@ -64,6 +64,20 @@
       "when": 1766467263690,
       "tag": "0008_futuristic_whirlwind",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768654082229,
+      "tag": "0009_nebulous_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1768655929298,
+      "tag": "0010_material_namorita",
+      "breakpoints": true
     }
   ]
 }

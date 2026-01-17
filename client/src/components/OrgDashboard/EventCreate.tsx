@@ -1,6 +1,6 @@
 // client/src/pages/organizer/EventCreate.tsx
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import EventBasicInfo from "./EventBasicInfo";
 import EventCategories from "./EventCategories";
 import EventSegments from "./EventSegments";
@@ -58,6 +58,79 @@ export default function EventCreate() {
     // Form state for segments
     const [segments, setSegments] = useState<Segment[]>([]);
 
+    // New States for Refactor
+    const { id } = useParams();
+    const isEditMode = Boolean(id);
+    const [isOnline, setIsOnline] = useState(false);
+    const [hasMultipleSegments, setHasMultipleSegments] = useState(true);
+    const [singleSegmentData, setSingleSegmentData] = useState({
+        capacity: 0,
+        registrationDeadline: "",
+        isTeamSegment: false,
+        minTeamSize: 1,
+        maxTeamSize: 5,
+    });
+
+    // Fetch existing event data if in edit mode
+    useEffect(() => {
+        if (!id) return;
+
+        const fetchEvent = async () => {
+             try {
+                const response = await fetch(`http://localhost:5050/api/events/${id}`, {
+                    credentials: "include"
+                });
+                const data = await response.json();
+                
+                if (response.ok && data.event) {
+                    const e = data.event;
+                    setBasicInfo({
+                        title: e.title,
+                        description: e.description,
+                        address: e.address,
+                        city: e.city,
+                        country: e.country,
+                        startDate: e.startDate ? e.startDate.split("T")[0] : "",
+                        endDate: e.endDate ? e.endDate.split("T")[0] : "",
+                    });
+                    setBannerUrl(e.bannerUrl ? `http://localhost:5050${e.bannerUrl}` : null);
+                    setIsOnline(e.isOnline);
+                    setHasMultipleSegments(e.hasMultipleSegments);
+                    
+                    if (e.eventCategories) {
+                        setSelectedCategories(e.eventCategories.map((ec: any) => ec.categoryName));
+                    }
+
+                    if (e.segments && e.segments.length > 0) {
+                        if (!e.hasMultipleSegments) {
+                            // Load single segment data
+                            const seg = e.segments[0];
+                            setSingleSegmentData({
+                                capacity: seg.capacity,
+                                registrationDeadline: seg.registrationDeadline ? seg.registrationDeadline.split("T")[0] : "",
+                                isTeamSegment: seg.isTeamSegment,
+                                minTeamSize: seg.minTeamSize || 1,
+                                maxTeamSize: seg.maxTeamSize || 5,
+                            });
+                        } else {
+                            // Load multi segments
+                             setSegments(e.segments.map((seg: any) => ({
+                                ...seg,
+                                startTime: seg.startTime ? seg.startTime.split("T")[0] : "", // Simplification for date input
+                                endTime: seg.endTime ? seg.endTime.split("T")[0] : "",
+                                registrationDeadline: seg.registrationDeadline ? seg.registrationDeadline.split("T")[0] : ""
+                             })));
+                        }
+                    }
+                }
+             } catch (err) {
+                 console.error("Failed to fetch event", err);
+                 setError("Failed to load event data");
+             }
+        };
+        fetchEvent();
+    }, [id]);
+
     // Validation errors
     const [basicInfoErrors, setBasicInfoErrors] = useState<
         Record<string, string>
@@ -65,6 +138,41 @@ export default function EventCreate() {
     const [segmentErrors, setSegmentErrors] = useState<
         Record<number, Record<string, string>>
     >({});
+
+    // Add this function to handle import completion
+    const handleImportComplete = (data: any) => {
+
+        // Update basic info with imported data
+        setBasicInfo((prev) => ({
+            ...prev,
+            title: data.title || prev.title,
+            description: data.description || prev.description,
+            address: data.address || prev.address,
+            city: data.city || prev.city,
+            country: data.country || prev.country,
+            startDate: data.startDate || prev.startDate,
+            endDate: data.endDate || prev.endDate,
+        }));
+
+        // If banner URL is provided, try to fetch it
+        if (data.bannerUrl) {
+            fetch(data.bannerUrl)
+                .then((response) => response.blob())
+                .then((blob) => {
+                    const file = new File([blob], "facebook-event-banner.jpg", {
+                        type: blob.type,
+                    });
+                    setBannerFile(file);
+                    setBannerUrl(URL.createObjectURL(file));
+                })
+                .catch((err) => console.error("Error fetching banner:", err));
+        }
+
+        // If categories are provided, add them to selected categories
+        if (data.categories && Array.isArray(data.categories)) {
+            setSelectedCategories((prev) => [...prev, ...data.categories]);
+        }
+    };
 
     // Fetch categories from the backend on component mount
     useEffect(() => {
@@ -263,6 +371,11 @@ export default function EventCreate() {
             return newErrors;
         });
     };
+    
+    // Handler for single segment data
+    const handleSingleSegmentChange = (field: string, value: any) => {
+        setSingleSegmentData(prev => ({ ...prev, [field]: value }));
+    }
 
     // Reset all form fields
     const handleReset = () => {
@@ -279,6 +392,15 @@ export default function EventCreate() {
         setBannerUrl(null);
         setSelectedCategories([]);
         setSegments([]);
+        setSingleSegmentData({
+            capacity: 0,
+            registrationDeadline: "",
+            isTeamSegment: false,
+            minTeamSize: 1,
+            maxTeamSize: 5,
+        });
+        setIsOnline(false);
+        setHasMultipleSegments(true);
         setBasicInfoErrors({});
         setSegmentErrors({});
         setError(null);
@@ -300,10 +422,10 @@ export default function EventCreate() {
             return;
         }
 
-        // Check if at least one segment exists
-        if (segments.length === 0) {
+        // Check if at least one segment exists (only for multi-segment)
+        if (hasMultipleSegments && segments.length === 0) {
             setActiveTab("segments");
-            setError("At least one segment is required");
+            setError("At least one segment is required for multi-segment events");
             return;
         }
 
@@ -333,6 +455,8 @@ export default function EventCreate() {
             if (basicInfo.endDate)
                 formData.append("endDate", basicInfo.endDate);
             formData.append("status", status);
+            formData.append("isOnline", String(isOnline));
+            formData.append("hasMultipleSegments", String(hasMultipleSegments));
 
             // Add banner file if exists
             if (bannerFile) {
@@ -347,14 +471,38 @@ export default function EventCreate() {
                 });
 
             // Add segments as JSON string
-            if (segments.length > 0) {
-                formData.append("segments", JSON.stringify(segments));
+            if (hasMultipleSegments) {
+                if (segments.length > 0) {
+                    formData.append("segments", JSON.stringify(segments));
+                }
+            } else {
+                // Construct single segment
+                 const singleSegment = {
+                    name: "Main Event",
+                    description: "Main Event Segment",
+                    startTime: basicInfo.startDate,
+                    endTime: basicInfo.endDate || basicInfo.startDate,
+                    capacity: singleSegmentData.capacity,
+                    categoryId: null, // Can assign a default category if needed
+                    isTeamSegment: singleSegmentData.isTeamSegment,
+                    isOnline: isOnline,
+                    registrationDeadline: singleSegmentData.registrationDeadline || null,
+                    minTeamSize: singleSegmentData.minTeamSize,
+                    maxTeamSize: singleSegmentData.maxTeamSize
+                 };
+                 formData.append("segments", JSON.stringify([singleSegment]));
             }
 
+            const url = isEditMode 
+                ? `http://localhost:5050/api/events/${id}` 
+                : "http://localhost:5050/api/events/create";
+            
+            const method = isEditMode ? "PUT" : "POST";
+
             const response = await fetch(
-                "http://localhost:5050/api/events/create",
+                url,
                 {
-                    method: "POST",
+                    method: method,
                     body: formData,
                     credentials: "include",
                 }
@@ -390,14 +538,14 @@ export default function EventCreate() {
     const tabs = [
         { id: "basic", label: "Basic Info" },
         { id: "categories", label: "Categories" },
-        { id: "segments", label: "Segments" },
+        ...(hasMultipleSegments ? [{ id: "segments", label: "Segments" }] : []),
     ];
 
     return (
         <div className="max-w-4xl mx-auto min-h-[100dvh] flex flex-col">
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-text-strong">
-                    Create New Event
+                    {isEditMode ? "Edit Event" : "Create New Event"}
                 </h1>
                 <p className="text-text-weak">
                     Fill in the details for your new event
@@ -442,7 +590,14 @@ export default function EventCreate() {
                             bannerUrl={bannerUrl}
                             onBasicInfoChange={handleBasicInfoChange}
                             onBannerChange={handleBannerChange}
+                            onImportComplete={handleImportComplete}
                             errors={basicInfoErrors}
+                            isOnline={isOnline}
+                            onIsOnlineChange={setIsOnline}
+                            hasMultipleSegments={hasMultipleSegments}
+                            onHasMultipleSegmentsChange={setHasMultipleSegments}
+                            singleSegmentData={singleSegmentData}
+                            onSingleSegmentChange={handleSingleSegmentChange}
                         />
                     )}
 

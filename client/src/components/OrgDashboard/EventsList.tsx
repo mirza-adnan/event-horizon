@@ -173,7 +173,7 @@ function EventCard({ event }: EventCardProps) {
 
     return (
         <Link
-            to={`/organizers/event/${event.id}`}
+            to={`/organizers/event/edit/${event.id}`}
             className="block"
         >
             <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden hover:border-accent transition-colors">
