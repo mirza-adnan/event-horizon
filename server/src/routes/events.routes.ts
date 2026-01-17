@@ -1,17 +1,27 @@
 import { Router } from "express";
-import { createEvent, getMyEvents } from "../controllers/events.controller";
+import {
+    createEvent,
+    getMyEvents,
+    getEventById,
+    updateEvent,
+    scrapeExternalEvents,
+    scrapeFacebookEvent,
+} from "../controllers/events.controller";
 import { requireOrganizer } from "../middleware/requireOrganizer";
 import { uploadEventBanner } from "../middleware/eventBannerUpload";
 
-const eventsRouter = Router();
+const router = Router();
 
-eventsRouter.post(
+router.post(
     "/create",
     requireOrganizer,
     uploadEventBanner.single("banner"),
     createEvent
 );
+router.get("/my", requireOrganizer, getMyEvents);
+router.get("/scrape-external-events", scrapeExternalEvents);
 
-eventsRouter.get("/my", requireOrganizer, getMyEvents);
+// New Routes
 
-export default eventsRouter;
+
+export default router;
