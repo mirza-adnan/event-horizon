@@ -19,6 +19,7 @@ router.post(
     createEvent
 );
 router.get("/my", requireOrganizer, getMyEvents);
+router.post("/scrape-facebook", requireOrganizer, scrapeFacebookEvent);
 router.get("/scrape-external-events", scrapeExternalEvents);
 
 // New Routes
