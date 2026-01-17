@@ -5,8 +5,8 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./global.css";
 import App from "./App.tsx";
 import Home from "./pages/Home.tsx";
-import OrgDashboard from "./pages/OrgDashboard.tsx"; // You might want to rename this to avoid confusion
-import OrgRegistration from "./pages/OrgRegistration.tsx";
+import Explore from "./pages/Explore.tsx";
+// OrgDashboard and OrgRegistration were unused, removed to clean up lints
 import UserSignup from "./pages/UserSignup.tsx";
 import OrganizerDashboard from "./components/OrgDashboard/Dashboard.tsx";
 import EventsList from "./components/OrgDashboard/EventsList.tsx";
@@ -21,6 +21,7 @@ import OrganizerDetails from "./components/Admin/OrganizerDetails.tsx";
 import AdminCategories from "./components/Admin/AdminCategories.tsx";
 import AdminLogin from "./pages/AdminLogin.tsx";
 import AdminProtectedRoute from "./components/Admin/AdminProtectedRoute.tsx";
+import AdminExternalEvents from "./components/Admin/AdminExternalEvents.tsx";
 
 const router = createBrowserRouter([
     {
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
             {
                 path: "/signup",
                 element: <UserSignup />,
+            },
+            {
+                path: "/explore",
+                element: <Explore />,
             },
             {
                 path: "/login",
@@ -59,6 +64,7 @@ const router = createBrowserRouter([
                     { index: true, element: <EventsList /> },
                     { path: "dashboard", element: <EventsList /> },
                     { path: "event/create", element: <EventCreate /> },
+                    { path: "event/edit/:id", element: <EventCreate /> },
                     { path: "profile", element: <div>Profile Page</div> },
                     { path: "settings", element: <div>Settings Page</div> },
                 ],
@@ -80,6 +86,7 @@ const router = createBrowserRouter([
                     { path: "pending", element: <PendingOrganizers /> },
                     { path: "pending/:id", element: <OrganizerDetails /> },
                     { path: "categories", element: <AdminCategories /> },
+                    { path: "external-events", element: <AdminExternalEvents /> },
                 ],
             },
         ],
