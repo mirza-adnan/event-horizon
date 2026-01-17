@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 
 async function seedCategories() {
     try {
-        const db = drizzle("database url here");
+        const db = drizzle(process.env.DATABASE_URl);
         const categoriesToSeed = [
             { name: "Tech", slug: "tech" },
             { name: "Business", slug: "business" },

@@ -17,6 +17,7 @@ import {
     check,
     PgTableExtraConfig,
     primaryKey,
+    json,
 } from "drizzle-orm/pg-core";
 
 export const usersTable = pgTable("users", {
@@ -87,6 +88,10 @@ export const eventsTable = pgTable("events", {
     }),
     status: eventStatusEnum("status").notNull().default("draft"),
     bannerUrl: text("banner_url"),
+    isOnline: boolean("is_online").default(false).notNull(),
+    hasMultipleSegments: boolean("has_multiple_segments")
+        .default(true)
+        .notNull(),
     organizerId: uuid("organizer_id")
         .notNull()
         .references(() => orgsTable.id, { onDelete: "cascade" }),
@@ -209,3 +214,25 @@ export type NewSegment = InferInsertModel<typeof segmentsTable>;
 
 export type Category = InferSelectModel<typeof categoriesTable>;
 export type NewCategory = InferInsertModel<typeof categoriesTable>;
+
+export const externalEventsTable = pgTable("external_events", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    slug: text("slug").unique().notNull(),
+    description: text("description"),
+    startDate: date("start_date", { mode: "date" }).notNull(),
+    imageUrl: text("image_url"),
+    location: text("location"),
+    isOnline: boolean("is_online").default(false).notNull(),
+    link: text("link").notNull(),
+    categories: json("categories").$type<string[]>().default([]),
+    clicks: integer("clicks").default(0).notNull(),
+    hovers: integer("hovers").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export type ExternalEvent = InferSelectModel<typeof externalEventsTable>;
+export type NewExternalEvent = InferInsertModel<typeof externalEventsTable>;
+
