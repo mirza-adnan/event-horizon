@@ -18,5 +18,19 @@ services:
             timeout: 5s
             retries: 5
 
+    image-to-text:
+        build:  ./image-to-text-service
+        container_name: image_to_text_service
+        restart: always
+        environment:
+            - MODEL_NAME=Salesforce/blip-image-captioning-base
+            - PORT=5001
+        ports:
+            - "5001:5001"
+        volumes:
+            - ./image-to-text-service:/app
+        depends_on:
+            - postgres
+
 volumes:
     postgres_data:
