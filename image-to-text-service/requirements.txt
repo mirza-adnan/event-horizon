@@ -1,0 +1,13 @@
+# Web framework
+flask==3.0.0
+
+# Machine Learning & Image Processing
+transformers==4.36.0
+torch==2.1.0
+pillow==10.1.0
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Optional
+requests==2.31.0
