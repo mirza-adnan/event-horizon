@@ -132,9 +132,22 @@ export const createEvent = async (req: Request, res: Response) => {
 
         // Validate segments if provided
         if (segments.length > 0) {
+            const eventStartDate = new Date(startDate);
+            
             for (const segment of segments) {
+                // Check segment start time is not before event start
+                if (segment.startTime) {
+                    const segmentStart = new Date(segment.startTime);
+                    if (segmentStart < eventStartDate) {
+                        return res.status(400).json({
+                            message: "Segment start time cannot be before event start date"
+                        });
+                    }
+                }
+                
                 if (
                     segment.endTime &&
+                    segment.endTime.trim() &&
                     new Date(segment.endTime) < new Date(segment.startTime)
                 ) {
                     return res.status(400).json({
@@ -251,7 +264,7 @@ export const createEvent = async (req: Request, res: Response) => {
                     name: segment.name,
                     description: segment.description,
                     startTime: new Date(segment.startTime),
-                    endTime: new Date(segment.endTime),
+                    endTime: segment.endTime && segment.endTime.trim() ? new Date(segment.endTime) : null,
                     capacity: segment.capacity,
                     isTeamSegment: segment.isTeamSegment,
                     isOnline: segment.isOnline,
@@ -452,7 +465,7 @@ export const updateEvent = async (req: Request, res: Response) => {
                     name: segment.name,
                     description: segment.description,
                     startTime: new Date(segment.startTime),
-                    endTime: new Date(segment.endTime),
+                    endTime: segment.endTime && segment.endTime.trim() ? new Date(segment.endTime) : null,
                     capacity: segment.capacity,
                     isTeamSegment: segment.isTeamSegment,
                     isOnline: segment.isOnline,
@@ -500,7 +513,7 @@ export const scrapeFacebookEvent = async (req: any, res: any) => {
 
         console.log("here");
 
-        const browser = await puppeteer.launch({ headless: true });
+        const browser = await puppeteer.launch({ headless: false });
         const page = await browser.newPage();
 
         await page.setUserAgent({
@@ -518,26 +531,34 @@ export const scrapeFacebookEvent = async (req: any, res: any) => {
             console.log("Title not found, attempting to extract anyway...");
         }
 
+        // 2. ROBUST "SEE MORE" CLICKING
         try {
-            const seeMoreHandle = await page.evaluateHandle(() => {
-                const elements = Array.from(
-                    document.querySelectorAll('div[role="button"], span, div')
-                );
-                const found = elements.find((el) => {
-                    const text = el.textContent?.trim().toLowerCase();
-                    return text === "see more" || text === "read more";
+             // Scroll down a bit to trigger lazy loading
+            await page.evaluate(() => window.scrollBy(0, 500));
+            await new Promise((r) => setTimeout(r, 1000));
+
+            const clicked = await page.evaluate(async () => {
+                const candidates = Array.from(document.querySelectorAll('div[role="button"], span, div, a'));
+                const seeMoreBtn = candidates.find(el => {
+                    const t = el.innerText?.toLowerCase().trim();
+                    return (t === 'see more' || t === 'read more') && el.offsetParent !== null; // Check visibility
                 });
-                return found instanceof HTMLElement ? found : null;
+
+                if (seeMoreBtn) {
+                    (seeMoreBtn as HTMLElement).click();
+                    return true;
+                }
+                return false;
             });
 
-            const buttonElement =
-                seeMoreHandle.asElement() as ElementHandle<HTMLElement> | null;
-            if (buttonElement) {
-                await buttonElement.click();
-                await new Promise((r) => setTimeout(r, 600));
+            if (clicked) {
+                console.log("Clicked 'See more' button");
+                await new Promise((r) => setTimeout(r, 1000)); // Wait for text expansion
+            } else {
+                console.log("'See more' button not found or not visible");
             }
         } catch (err) {
-            console.log("See more button not found");
+            console.log("Error trying to click See more:", err);
         }
 
         // 3. SEPARATE EXTRACTION: Text and First Image
@@ -568,14 +589,14 @@ export const scrapeFacebookEvent = async (req: any, res: any) => {
 
         await browser.close();
 
-        // 4. Send to Groq with specific instructions for the image
+        // 4. Send to Groq with specific instructions for segments
         const chatCompletion = await groq.chat.completions.create({
             model: "llama-3.3-70b-versatile",
             messages: [
                 {
                     role: "system",
                     content:
-                        "You are an expert at extracting event data. You will be provided with a text dump and a candidate banner URL.",
+                        "You are an expert at extracting event data. You will be provided with a text dump. Extract the event details.",
                 },
                 {
                     role: "user",
@@ -589,23 +610,45 @@ export const scrapeFacebookEvent = async (req: any, res: any) => {
                         PAGE TEXT:
                         ${extractedDataFromPage.cleanText.substring(0, 15000)}
 
+                        IMPORTANT: Check if this is a Multi-Segment Event (e.g. Schedule, multiple days, multiple sessions, hackathon timeline).
+                        If strictly single segment, "segments" should be empty.
+
+                        Assign relevant CATEGORIES from this list (use slugs): ${CATEGORIES.map(
+                            (c) => c.slug
+                        ).join(", ")}.
+
                         Return JSON structure:
                         {
-                            "title": "",
-                            "description": "",
+                            "title": "Event Title",
+                            "description": "Full event description summary",
                             "startDate": "YYYY-MM-DD",
                             "endDate": "YYYY-MM-DD",
-                            "address": "",
-                            "city": "",
-                            "country": "",
-                            "bannerUrl": "${
-                                extractedDataFromPage.firstImageUrl || ""
-                            }",
-                            "categories": []
+                            "startTime": "HH:MM (24h)",
+                            "endTime": "HH:MM (24h)",
+                            "address": "Physical address",
+                            "city": "City",
+                            "country": "Country",
+                            "bannerUrl": "Use candidate if valid, else null",
+                            "isOnline": boolean,
+                            "categoryNames": ["Tech", "workshop"],
+                            "hasMultipleSegments": boolean,
+                            "segments": [
+                                {
+                                    "name": "Session/Day Title",
+                                    "description": "Details",
+                                    "startTime": "YYYY-MM-DDTHH:mm:00.000Z" (ISO),
+                                    "endTime": "YYYY-MM-DDTHH:mm:00.000Z" (ISO),
+                                    "isOnline": boolean
+                                    "category": one slug from the list
+                                }
+                            ]
                         }
-                    `,
+                        
+                        If exact times for segments are not found, set the startTime equal to the startDate of the event.
+                     `,
                 },
             ],
+
             response_format: { type: "json_object" },
             temperature: 0.1,
         });
@@ -613,6 +656,28 @@ export const scrapeFacebookEvent = async (req: any, res: any) => {
         const extractedData = JSON.parse(
             chatCompletion.choices[0]?.message?.content || "{}"
         );
+
+        // Convert category slugs to names
+        if (extractedData.categoryNames && Array.isArray(extractedData.categoryNames)) {
+            extractedData.categoryNames = extractedData.categoryNames.map((slug: string) => {
+                const category = CATEGORIES.find(c => c.slug === slug.toLowerCase());
+                return category ? category.name : slug;
+            });
+        }
+
+        // Convert segment category slugs to names
+        if (extractedData.segments && Array.isArray(extractedData.segments)) {
+            extractedData.segments = extractedData.segments.map((seg: any) => {
+                if (seg.category) {
+                    const category = CATEGORIES.find(c => c.slug === seg.category.toLowerCase());
+                    seg.category = category ? category.name : seg.category;
+                }
+                return seg;
+            });
+        }
+
+        console.log("Extracted data:", extractedData);
+
         res.json({ eventData: extractedData });
     } catch (error: any) {
         res.status(500).json({

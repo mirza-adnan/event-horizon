@@ -74,7 +74,7 @@ export default function FacebookEventImport({
     };
 
     return (
-        <div className="mb-6 p-4 bg-zinc-900 rounded-lg border border-zinc-800">
+        <div className="mb-6 p-4 bg-zinc-900 rounded-lg border border-zinc-800 w-full">
             <h3 className="text-lg font-medium mb-3">
                 Import from Facebook Event
             </h3>
@@ -82,13 +82,14 @@ export default function FacebookEventImport({
                 Paste a Facebook event link to automatically fill event details
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
                 <Input
                     type="url"
                     placeholder="https://www.facebook.com/events/..."
                     value={facebookUrl}
                     onChange={(e) => setFacebookUrl(e.target.value)}
-                    className="flex-1 w-full"
+                    className="w-full"
+                    containerClassName="flex-1"
                 />
                 <button
                     onClick={handleScrape}
