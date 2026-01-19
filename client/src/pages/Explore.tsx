@@ -3,7 +3,8 @@ import NavBar from "../components/HomePage/HomeNavBar";
 import HomeFooter from "../components/HomePage/HomeFooter";
 import ExternalEventCard from "../components/ExternalEventCard";
 import { fetchExternalEvents } from "../utils/api";
-import { FaCompass, FaSpinner } from "react-icons/fa";
+import { FaCompass, FaSpinner, FaSearch } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 interface ExternalEvent {
     id: string; // Added ID
@@ -16,10 +17,27 @@ interface ExternalEvent {
     categories: string[];
 }
 
+interface PlatformEvent {
+    id: string;
+    title: string;
+    description: string;
+    startDate: string;
+    endDate?: string;
+    bannerUrl?: string;
+    city: string;
+    country: string;
+    isOnline: boolean;
+}
+
 function Explore() {
     const [events, setEvents] = useState<ExternalEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Platform Search State
+    const [searchQuery, setSearchQuery] = useState("");
+    const [platformEvents, setPlatformEvents] = useState<PlatformEvent[]>([]);
+    const [loadingPlatform, setLoadingPlatform] = useState(false);
 
     useEffect(() => {
         const loadEvents = async () => {
@@ -35,7 +53,30 @@ function Explore() {
         };
 
         loadEvents();
+        
+        // Initial load of platform events (no query = default list)
+        handleSearch("");
     }, []);
+
+    const handleSearch = async (query: string) => {
+        setLoadingPlatform(true);
+        try {
+            const res = await fetch(`http://localhost:5050/api/events/search?q=${encodeURIComponent(query)}&limit=10`);
+            const data = await res.json();
+            if (res.ok) {
+                setPlatformEvents(data.events);
+            }
+        } catch (e) {
+            console.error("Search failed", e);
+        } finally {
+            setLoadingPlatform(false);
+        }
+    };
+
+    const onSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        handleSearch(searchQuery);
+    };
 
     const handleHover = async (id: string) => {
         try {
@@ -70,72 +111,127 @@ function Explore() {
                     <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 mb-4 jaro tracking-wide">
                         Explore Events
                     </h1>
-                    <p className="text-gray-400 max-w-2xl text-lg">
+                    <p className="text-gray-400 max-w-2xl text-lg mb-8">
                         Discover exciting competitions, workshops, and conferences happening around you. 
                         Curated from across the web.
                     </p>
+
+                    {/* Search Bar */}
+                    <form onSubmit={onSearchSubmit} className="relative w-full max-w-xl">
+                        <input
+                            type="text"
+                            placeholder="Find events (e.g., 'React workshop', 'Hackathon next week')..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-12 pr-4 py-3 rounded-full bg-zinc-900/80 border border-zinc-700 focus:border-accent text-white outline-none transition-colors"
+                        />
+                        <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <button 
+                            type="submit"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-accent text-black px-4 py-1.5 rounded-full font-medium hover:bg-accent/90 transition-colors"
+                        >
+                            Search
+                        </button>
+                    </form>
                 </div>
 
-                <div className="space-y-8">
-                    <div className="flex items-center justify-between">
-                         <h2 className="text-2xl font-bold text-white border-l-4 border-accent pl-3">
-                            External Events
-                        </h2>
+                <div className="space-y-16">
+                    {/* External Events Section */}
+                    <div>
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-2xl font-bold text-white border-l-4 border-accent pl-3">
+                                External Events
+                            </h2>
+                        </div>
+
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-20">
+                                <FaSpinner className="animate-spin text-accent text-4xl mb-4" />
+                                <p className="text-gray-400 animate-pulse">Scanning the horizon for events...</p>
+                            </div>
+                        ) : error ? (
+                            <div className="text-center py-20 bg-red-900/10 rounded-xl border border-red-900/50">
+                                <p className="text-red-400 text-lg mb-2">Something went wrong</p>
+                                <p className="text-gray-500">{error}</p>
+                            </div>
+                        ) : events.length === 0 ? (
+                            <div className="text-center py-20 bg-zinc-900/50 rounded-xl border border-zinc-800">
+                                <FaCompass className="text-6xl text-gray-700 mx-auto mb-4" />
+                                <p className="text-gray-400 text-xl">No external events found at the moment.</p>
+                                <p className="text-gray-600 mt-2">Check back later for updates!</p>
+                            </div>
+                        ) : (
+                            // Horizontal Scroll Container
+                            <div className="relative group/scroll">
+                                <div className="flex overflow-x-auto gap-6 pb-6 scrollbar-hide snap-x">
+                                    {events.map((event) => (
+                                        <div 
+                                            key={event.id} 
+                                            className="min-w-[300px] md:min-w-[350px] snap-center"
+                                            onMouseEnter={() => handleHover(event.id)}
+                                            onClick={() => handleClick(event.id)}
+                                        >
+                                            <ExternalEventCard {...event} />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-bgr to-transparent pointer-events-none" />
+                                <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-bgr to-transparent pointer-events-none" />
+                            </div>
+                        )}
                     </div>
 
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20">
-                            <FaSpinner className="animate-spin text-accent text-4xl mb-4" />
-                            <p className="text-gray-400 animate-pulse">Scanning the horizon for events...</p>
+                    {/* Platform Events (Internal) Section */}
+                    <div>
+                         <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-2xl font-bold text-white border-l-4 border-accent pl-3">
+                                Platform Events
+                            </h2>
                         </div>
-                    ) : error ? (
-                        <div className="text-center py-20 bg-red-900/10 rounded-xl border border-red-900/50">
-                            <p className="text-red-400 text-lg mb-2">Something went wrong</p>
-                            <p className="text-gray-500">{error}</p>
-                        </div>
-                    ) : events.length === 0 ? (
-                         <div className="text-center py-20 bg-zinc-900/50 rounded-xl border border-zinc-800">
-                            <FaCompass className="text-6xl text-gray-700 mx-auto mb-4" />
-                            <p className="text-gray-400 text-xl">No external events found at the moment.</p>
-                            <p className="text-gray-600 mt-2">Check back later for updates!</p>
-                        </div>
-                    ) : (
-                        // Horizontal Scroll Container
-                        <div className="relative group/scroll">
-                             <div className="flex overflow-x-auto gap-6 pb-6 scrollbar-hide snap-x">
-                                {events.map((event) => (
-                                    <div 
-                                        key={event.id} 
-                                        className="min-w-[300px] md:min-w-[350px] snap-center"
-                                        onMouseEnter={() => {
-                                            // Simple debounce could be added here if needed, 
-                                            // but for now relying on user moving fast enough or backend handling is okay-ish for MVP stats
-                                            // Actually, strictly speaking, we should debounce.
-                                            // For this implementation, I will just fire it once per mouse enter. 
-                                            handleHover(event.id)
-                                        }}
-                                        onClick={() => handleClick(event.id)}
-                                    >
-                                        <ExternalEventCard 
-                                            {...event}
-                                            // Override onClick to handle tracking before opening
-                                            // Wait, ExternalEventCard has its own onClick. 
-                                            // I need to modify ExternalEventCard to accept an onClick prop or handle it here.
-                                            // Actually, the card has `window.open`. 
-                                            // I'll wrap it in a div that captures onClick, but the inner card might stop propagation?
-                                            // Let's modify ExternalEventCard to be more flexible in next step if needed.
-                                            // For now, assume the card's internal onClick works, and this wrapper onClick might also fire.
-                                            // Better approach: Pass `onClick` to ExternalEventCard.
-                                        />
-                                    </div>
+
+                        {loadingPlatform ? (
+                             <div className="flex flex-col items-center justify-center py-10">
+                                <FaSpinner className="animate-spin text-accent text-3xl mb-4" />
+                                <p className="text-gray-400">Loading platform events...</p>
+                             </div>
+                        ) : platformEvents.length === 0 ? (
+                             <div className="text-center py-12 bg-zinc-900/50 rounded-xl border border-zinc-800">
+                                <p className="text-gray-400">No events found matching your search.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {platformEvents.map((event) => (
+                                    <Link key={event.id} to={`/events/${event.id}`} className="group block bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-accent transition-colors">
+                                        <div className="aspect-video bg-zinc-800 relative overflow-hidden">
+                                            {event.bannerUrl ? (
+                                                <img 
+                                                    src={`http://localhost:5050${event.bannerUrl}`} 
+                                                    alt={event.title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-600">
+                                                    No Image
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-5">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-accent transition-colors">{event.title}</h3>
+                                            </div>
+                                            <p className="text-zinc-400 text-sm mb-4 line-clamp-2">{event.description}</p>
+                                            
+                                            <div className="flex items-center gap-4 text-sm text-zinc-500">
+                                                <span>{new Date(event.startDate).toLocaleDateString()}</span>
+                                                <span>•</span>
+                                                <span>{event.isOnline ? "Online" : event.city}</span>
+                                            </div>
+                                        </div>
+                                    </Link>
                                 ))}
                             </div>
-                            
-                            {/* Fade gradients for scroll indication */}
-                            <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-bgr to-transparent pointer-events-none" />
-                            <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-bgr to-transparent pointer-events-none" />
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </main>
 
