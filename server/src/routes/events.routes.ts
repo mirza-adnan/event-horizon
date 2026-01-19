@@ -6,6 +6,7 @@ import {
     updateEvent,
     scrapeExternalEvents,
     scrapeFacebookEvent,
+    searchEvents,
 } from "../controllers/events.controller";
 import { requireOrganizer } from "../middleware/requireOrganizer";
 import { uploadEventBanner } from "../middleware/eventBannerUpload";
@@ -21,6 +22,7 @@ router.post(
 router.get("/my", requireOrganizer, getMyEvents);
 router.post("/scrape-facebook", requireOrganizer, scrapeFacebookEvent);
 router.get("/scrape-external-events", scrapeExternalEvents);
+router.get("/search", searchEvents);
 
 // New Routes
 router.get("/:id", requireOrganizer, getEventById);

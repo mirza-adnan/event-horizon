@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import db from "../db";
 import { externalEventsTable } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
-import { scrapeFacebookEvents } from "../utils/scraper";
+import { scrapeEventsWithoutLogin, scrapeFacebookEvents } from "../utils/scraper";
 import CATEGORIES from "../utils/categories";
 import { Groq } from "groq-sdk";
 
@@ -20,7 +20,7 @@ const generateSlug = (title: string) => {
 export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
     try {
         console.log("Starting scrape and seed...");
-        const rawEvents = await scrapeFacebookEvents();
+        const rawEvents = await scrapeEventsWithoutLogin();
 
         // 1. Filter: Remove "Happening now"
         const filteredRawEvents = rawEvents.filter((e: any) => {

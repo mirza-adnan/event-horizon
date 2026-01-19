@@ -6,13 +6,15 @@ import {
     eventCategoriesTable,
     segmentsTable,
 } from "../db/schema";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, desc } from "drizzle-orm";
 import axios from "axios";
 import { Groq } from "groq-sdk";
 import * as cheerio from "cheerio";
 import puppeteer, { type ElementHandle } from "puppeteer";
-import { scrapeFacebookEvents } from "../utils/scraper";
+import { scrapeEventsWithoutLogin, scrapeFacebookEvents } from "../utils/scraper";
 import CATEGORIES from "../utils/categories";
+import { generateEmbedding } from "../utils/embeddings";
+import { sql } from "drizzle-orm";
 
 export const createEvent = async (req: Request, res: Response) => {
     try {
@@ -205,6 +207,23 @@ export const createEvent = async (req: Request, res: Response) => {
                     organizerId,
                 })
                 .returning();
+
+            // Generate Embedding for Semantic Search
+            // We do this asynchronously to not block the response or outside the transaction if preferred, 
+            // but for consistency we can do it here. 
+            // Note: If OpenAI fails, we might still want the event created, but for now let's await it.
+            try {
+                const textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                const embeddingVector = await generateEmbedding(textToEmbed);
+                
+                await tx
+                    .update(eventsTable)
+                    .set({ embedding: embeddingVector })
+                    .where(eq(eventsTable.id, newEvent.id));
+            } catch (embedError) {
+                console.error("Failed to generate embedding for new event:", embedError);
+                // Proceed without embedding, can be backfilled later
+            }
 
             if (categoryNames.length > 0) {
                 const eventCategoryValues = categoryNames.map(
@@ -445,6 +464,21 @@ export const updateEvent = async (req: Request, res: Response) => {
                 }));
                 await tx.insert(segmentsTable).values(segmentValues);
             }
+
+            // Update Embedding
+            try {
+                // We need to re-fetch categories if we want to include them, 
+                // but we have categoryNames array from earlier
+                const textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                const embeddingVector = await generateEmbedding(textToEmbed);
+                
+                await tx
+                    .update(eventsTable)
+                    .set({ embedding: embeddingVector })
+                    .where(eq(eventsTable.id, id));
+            } catch (embedError) {
+                console.error("Failed to generate embedding for updated event:", embedError);
+            }
         });
 
         res.json({ message: "Event updated successfully" });
@@ -591,7 +625,7 @@ export const scrapeFacebookEvent = async (req: any, res: any) => {
 export const scrapeExternalEvents = async (req: Request, res: Response) => {
     try {
         console.log("Starting scrape...");
-        const rawEvents = await scrapeFacebookEvents();
+        const rawEvents = await scrapeEventsWithoutLogin();
 
         // 1. Local Filter: Remove "Happening now"
         const filteredRawEvents = rawEvents.filter((e: any) => {
@@ -684,3 +718,67 @@ export const scrapeExternalEvents = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const searchEvents = async (req: Request, res: Response) => {
+    try {
+        const { q, page = 1, limit = 10 } = req.query;
+        const offset = (Number(page) - 1) * Number(limit);
+        const limitVal = Number(limit);
+
+        let results;
+
+        if (q && typeof q === "string" && q.trim().length > 0) {
+             // Semantic Search
+             const queryEmbedding = await generateEmbedding(q);
+             // Use distance operator <=> (cosine distance)
+             const similarity = sql<number>`1 - (${eventsTable.embedding} <=> ${JSON.stringify(queryEmbedding)})`;
+
+             results = await db
+                .select({
+                    id: eventsTable.id,
+                    title: eventsTable.title,
+                    description: eventsTable.description,
+                    startDate: eventsTable.startDate,
+                    endDate: eventsTable.endDate,
+                    bannerUrl: eventsTable.bannerUrl,
+                    city: eventsTable.city,
+                    country: eventsTable.country,
+                    isOnline: eventsTable.isOnline,
+                    similarity: similarity
+                })
+                .from(eventsTable)
+                .where(and(
+                    eq(eventsTable.status, "published"),
+                    sql`${similarity} > 0.25` // Threshold for relevance
+                ))
+                .orderBy(sql`${similarity} DESC`)
+                .limit(limitVal)
+                .offset(offset);
+        } else {
+            // Default: List latest published events
+            results = await db
+                .select({
+                     id: eventsTable.id,
+                     title: eventsTable.title,
+                     description: eventsTable.description,
+                     startDate: eventsTable.startDate,
+                     endDate: eventsTable.endDate,
+                     bannerUrl: eventsTable.bannerUrl,
+                     city: eventsTable.city,
+                     country: eventsTable.country,
+                     isOnline: eventsTable.isOnline,
+                })
+                .from(eventsTable)
+                .where(eq(eventsTable.status, "published"))
+                .orderBy(desc(eventsTable.createdAt))
+                .limit(limitVal)
+                .offset(offset);
+        }
+
+        res.json({ events: results });
+
+    } catch (error: any) {
+        console.error("Search error:", error);
+        res.status(500).json({ message: "Search failed", error: error.message });
+    }
+}

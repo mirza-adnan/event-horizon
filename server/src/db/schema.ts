@@ -18,7 +18,20 @@ import {
     PgTableExtraConfig,
     primaryKey,
     json,
+    customType,
 } from "drizzle-orm/pg-core";
+
+const vector = customType<{ data: number[], driverData: string }>({
+    dataType() {
+        return "vector(384)";
+    },
+    toDriver(value: number[]): string {
+        return JSON.stringify(value);
+    },
+    fromDriver(value: string): number[] {
+        return JSON.parse(value);
+    },
+});
 
 export const usersTable = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -101,6 +114,7 @@ export const eventsTable = pgTable("events", {
     updatedAt: timestamp("updated_at", { withTimezone: true })
         .notNull()
         .defaultNow(),
+    embedding: vector("embedding"),
 });
 
 export const segmentsTable = pgTable("segments", {
