@@ -84,7 +84,7 @@ export default function EventBasicInfo({
                         className="w-5 h-5 rounded border-zinc-700 bg-zinc-800 text-accent focus:ring-accent"
                     />
                     <label htmlFor="isOnline" className="text-text-strong select-none cursor-pointer">
-                        This is an online event
+                        Online
                     </label>
                 </div>
             </div>
@@ -121,41 +121,43 @@ export default function EventBasicInfo({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <label className="block ml-1">Address *</label>
+                    <label className="block ml-1">Address {isOnline ? "" : "*"}</label>
                     <input
                         type="text"
                         value={basicInfo.address}
                         onChange={(e) =>
                             onBasicInfoChange("address", e.target.value)
                         }
+                        disabled={isOnline}
                         className={`w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ${
-                            errors.address
+                            errors.address && !isOnline
                                 ? "ring-red-500"
                                 : "ring-[#373737] focus:ring-accent"
-                        }`}
-                        required
+                        } ${isOnline ? "opacity-50 cursor-not-allowed" : ""}`}
+                        required={!isOnline}
                     />
-                    {errors.address && (
+                    {errors.address && !isOnline && (
                         <p className="text-red-400 text-sm">{errors.address}</p>
                     )}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block ml-1">City *</label>
+                    <label className="block ml-1">City {isOnline ? "" : "*"}</label>
                     <input
                         type="text"
                         value={basicInfo.city}
                         onChange={(e) =>
                             onBasicInfoChange("city", e.target.value)
                         }
+                        disabled={isOnline}
                         className={`w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ${
-                            errors.city
+                            errors.city && !isOnline
                                 ? "ring-red-500"
                                 : "ring-[#373737] focus:ring-accent"
-                        }`}
-                        required
+                        } ${isOnline ? "opacity-50 cursor-not-allowed" : ""}`}
+                        required={!isOnline}
                     />
-                    {errors.city && (
+                    {errors.city && !isOnline && (
                         <p className="text-red-400 text-sm">{errors.city}</p>
                     )}
                 </div>
@@ -240,16 +242,6 @@ export default function EventBasicInfo({
                     <h3 className="text-lg font-semibold text-text-strong">Registration Details</h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="block ml-1">Registration Capacity *</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={singleSegmentData.capacity}
-                                onChange={(e) => onSingleSegmentChange("capacity", parseInt(e.target.value) || 0)}
-                                className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
-                            />
-                        </div>
                         <div className="space-y-2">
                             <label className="block ml-1">Registration Deadline</label>
                             <input

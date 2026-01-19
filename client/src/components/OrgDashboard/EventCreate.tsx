@@ -141,7 +141,6 @@ export default function EventCreate() {
 
     // Add this function to handle import completion
     const handleImportComplete = (data: any) => {
-
         // Update basic info with imported data
         setBasicInfo((prev) => ({
             ...prev,
@@ -153,6 +152,34 @@ export default function EventCreate() {
             startDate: data.startDate || prev.startDate,
             endDate: data.endDate || prev.endDate,
         }));
+
+        if (typeof data.isOnline === 'boolean') {
+            setIsOnline(data.isOnline);
+        }
+
+        if (typeof data.hasMultipleSegments === 'boolean') {
+            setHasMultipleSegments(data.hasMultipleSegments);
+        }
+
+        // Handle Segments
+        if (data.segments && Array.isArray(data.segments) && data.segments.length > 0) {
+            if (data.hasMultipleSegments) {
+                // Map imported segments to state structure
+                const mappedSegments = data.segments.map((seg: any) => ({
+                    id: Date.now() + Math.random(), // Temp unique ID
+                    name: seg.name || "Session",
+                    description: seg.description || "",
+                    // Convert ISO datetime to datetime-local format (YYYY-MM-DDTHH:mm)
+                    startTime: seg.startTime ? seg.startTime.slice(0, 16) : "",
+                    endTime: seg.endTime ? seg.endTime.slice(0, 16) : "",
+                    categoryId: seg.category || "", // Map category from LLM
+                    isTeamSegment: false,
+                    isOnline: seg.isOnline || false,
+                    registrationDeadline: ""
+                }));
+                setSegments(mappedSegments);
+            }
+        }
 
         // If banner URL is provided, try to fetch it
         if (data.bannerUrl) {
@@ -168,9 +195,11 @@ export default function EventCreate() {
                 .catch((err) => console.error("Error fetching banner:", err));
         }
 
-        // If categories are provided, add them to selected categories
-        if (data.categories && Array.isArray(data.categories)) {
-            setSelectedCategories((prev) => [...prev, ...data.categories]);
+        // Set categories (replace, don't append)
+        if (data.categoryNames && Array.isArray(data.categoryNames)) {
+            setSelectedCategories(data.categoryNames);
+        } else if (data.categories && Array.isArray(data.categories)) {
+            setSelectedCategories(data.categories);
         }
     };
 
@@ -233,8 +262,15 @@ export default function EventCreate() {
                 segmentErrors.name = "Segment name is required";
             if (!segment.startTime)
                 segmentErrors.startTime = "Start time is required";
-            if (!segment.endTime)
-                segmentErrors.endTime = "End time is required";
+
+            // Check segment start is not before event start
+            if (segment.startTime && basicInfo.startDate) {
+                const segmentStart = new Date(segment.startTime);
+                const eventStart = new Date(basicInfo.startDate);
+                if (segmentStart < eventStart) {
+                    segmentErrors.startTime = "Segment start cannot be before event start date";
+                }
+            }
 
             if (segment.startTime && segment.endTime) {
                 const start = new Date(segment.startTime).getTime();
