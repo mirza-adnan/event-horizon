@@ -12,6 +12,7 @@ type InputProps = {
     value?: string;
     error?: string;
     disabled?: boolean;
+    containerClassName?: string;
 };
 
 function Input({
@@ -25,9 +26,10 @@ function Input({
     value,
     error,
     disabled = false,
+    containerClassName
 }: InputProps) {
     return (
-        <div className="space-y-2">
+         <div className={cn("space-y-2", containerClassName)}>
             <label className="block ml-1 text-sm">
                 {label}{" "}
                 {required && <span className="text-danger text-lg">*</span>}

@@ -190,22 +190,7 @@ export default function EventSegment({
                         )}
                     </div>
 
-                    <div className="flex flex-col space-y-2">
-                        <label className="block">Capacity</label>
-                        <input
-                            type="number"
-                            value={segment.capacity}
-                            onChange={(e) =>
-                                onUpdateSegment(
-                                    segment.id,
-                                    "capacity",
-                                    parseInt(e.target.value) || 0
-                                )
-                            }
-                            className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
-                            min="0"
-                        />
-                    </div>
+
 
                     <div className="flex flex-col space-y-2">
                         <label className="block">Registration Deadline</label>
@@ -283,7 +268,6 @@ export default function EventSegment({
                                     ? "ring-red-500"
                                     : "ring-[#373737] focus:ring-accent"
                             }`}
-                            required
                         />
                         {errors.endTime && (
                             <p className="text-red-400 text-sm">
