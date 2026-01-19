@@ -5,6 +5,7 @@ from PIL import Image
 import io
 from dotenv import load_dotenv
 import sys
+import threading
 
 # Load environment variables
 load_dotenv()
@@ -42,9 +43,11 @@ def load_model():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    model_status = 'loaded' if model is not None else 'loading'
     return jsonify({
         'status': 'healthy',
         'model':  MODEL_NAME,
+        'model_status': model_status,
         'service': 'image-to-text'
     }), 200
 
@@ -52,6 +55,10 @@ def health_check():
 def generate_caption():
     """Generate caption from uploaded image"""
     try:
+        # Check if model is loaded
+        if model is None or processor is None:
+            return jsonify({'error': 'Model is still loading, please try again later'}), 503
+
         # Check if image is in request
         if 'image' not in request.files:
             return jsonify({'error': 'No image provided'}), 400
@@ -79,6 +86,10 @@ def generate_caption():
 def generate_caption_from_url():
     """Generate caption from image URL"""
     try:
+        # Check if model is loaded
+        if model is None or processor is None:
+            return jsonify({'error': 'Model is still loading, please try again later'}), 503
+
         data = request.get_json()
 
         if 'url' not in data:
@@ -108,13 +119,16 @@ if __name__ == '__main__':
     print("=" * 50, flush=True)
     sys.stdout.flush()
 
-    # Load model on startup
-    load_model()
+    # Start model loading in background thread
+    model_thread = threading.Thread(target=load_model, daemon=True)
+    model_thread.start()
 
     print("=" * 50, flush=True)
     print(f"Starting Flask server on 0.0.0.0:{PORT}", flush=True)
+    print("Model will load in background...", flush=True)
     print("=" * 50, flush=True)
     sys.stdout.flush()
 
     # Run Flask app
     app.run(host='0.0.0.0', port=PORT, debug=False)
+
