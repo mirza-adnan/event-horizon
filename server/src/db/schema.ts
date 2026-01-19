@@ -90,8 +90,8 @@ export const eventsTable = pgTable("events", {
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title").notNull(),
     description: text("description").notNull(),
-    address: text("location").notNull(),
-    city: text("city").notNull(),
+    address: text("location"),
+    city: text("city"),
     country: text("country").notNull().default("Bangladesh"),
     startDate: date("start_date", {
         mode: "date",
@@ -128,8 +128,7 @@ export const segmentsTable = pgTable("segments", {
     endTime: timestamp("end_time", {
         withTimezone: true,
         mode: "date",
-    }).notNull(),
-    capacity: integer("capacity").notNull().default(0),
+    }),
     isTeamSegment: boolean("is_team_segment").notNull().default(false),
     isOnline: boolean("is_online").notNull().default(false),
     registrationDeadline: timestamp("registration_deadline", {
