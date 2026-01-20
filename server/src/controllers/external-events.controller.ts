@@ -22,7 +22,7 @@ const generateSlug = (title: string) => {
 export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
     try {
         console.log("Starting scrape and seed...");
-        const rawEvents = await scrapeEventsWithoutLogin();
+        const rawEvents = await scrapeFacebookEvents();
 
         // 1. Filter: Remove "Happening now"
         const filteredRawEvents = rawEvents.filter((e: any) => {
