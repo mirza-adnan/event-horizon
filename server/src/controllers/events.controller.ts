@@ -234,8 +234,8 @@ export const createEvent = async (req: Request, res: Response) => {
                     endDate: endDate ? new Date(endDate) : null,
                     status,
                     bannerUrl, // Use the relative path
-                    isOnline: Boolean(isOnline),
-                    hasMultipleSegments: Boolean(hasMultipleSegments),
+                    isOnline: String(isOnline) === "true",
+                    hasMultipleSegments: String(hasMultipleSegments) === "true",
                     organizerId,
                 })
                 .returning();
@@ -490,8 +490,8 @@ export const updateEvent = async (req: Request, res: Response) => {
                 endDate: endDate ? new Date(endDate) : null,
                 status,
                 bannerUrl,
-                isOnline: Boolean(isOnline),
-                hasMultipleSegments: Boolean(hasMultipleSegments),
+                isOnline: String(isOnline) === "true",
+                hasMultipleSegments: String(hasMultipleSegments) === "true",
                 updatedAt: new Date()
             }).where(eq(eventsTable.id, id));
 

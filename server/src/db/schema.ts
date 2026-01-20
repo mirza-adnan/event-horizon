@@ -244,6 +244,7 @@ export const externalEventsTable = pgTable("external_events", {
     createdAt: timestamp("created_at", { withTimezone: true })
         .notNull()
         .defaultNow(),
+    embedding: vector("embedding"),
 });
 
 export type ExternalEvent = InferSelectModel<typeof externalEventsTable>;

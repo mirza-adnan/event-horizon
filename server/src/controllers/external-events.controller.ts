@@ -4,6 +4,8 @@ import { externalEventsTable } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { scrapeEventsWithoutLogin, scrapeFacebookEvents } from "../utils/scraper";
 import CATEGORIES from "../utils/categories";
+import { generateEmbedding } from "../utils/embeddings";
+import { sql } from "drizzle-orm";
 import { Groq } from "groq-sdk";
 
 const groq = new Groq({
@@ -106,6 +108,11 @@ export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
                 .where(eq(externalEventsTable.slug, slug));
 
             if (existing.length === 0) {
+                const textToEmbed = `${event.title}\n${event.description || ""}\n${
+                    event.categories ? event.categories.join(", ") : ""
+                }`;
+                const embeddingVector = await generateEmbedding(textToEmbed);
+
                 await db.insert(externalEventsTable).values({
                     title: event.title,
                     slug: slug,
@@ -118,6 +125,7 @@ export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
                     categories: event.categories || [],
                     clicks: 0,
                     hovers: 0,
+                    embedding: embeddingVector,
                 });
                 addedCount++;
             }
@@ -136,10 +144,24 @@ export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
 
 export const getAllExternalEvents = async (req: Request, res: Response) => {
     try {
-        const events = await db
-            .select()
-            .from(externalEventsTable)
-            .orderBy(desc(externalEventsTable.startDate));
+        const { q } = req.query;
+
+        let events;
+
+        if (q && typeof q === "string" && q.trim().length > 0) {
+            const queryEmbedding = await generateEmbedding(q);
+             // Use cosine distance for similarity sort
+            events = await db
+                .select()
+                .from(externalEventsTable)
+                .orderBy(sql`${externalEventsTable.embedding} <=> ${JSON.stringify(queryEmbedding)}`);
+        } else {
+            events = await db
+                .select()
+                .from(externalEventsTable)
+                .orderBy(desc(externalEventsTable.startDate));
+        }
+
         res.json({ events });
     } catch (error) {
         console.error("Error fetching external events:", error);
