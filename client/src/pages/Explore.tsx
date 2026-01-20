@@ -60,16 +60,29 @@ function Explore() {
 
     const handleSearch = async (query: string) => {
         setLoadingPlatform(true);
+        setLoading(true); // Also load external events
         try {
-            const res = await fetch(`http://localhost:5050/api/events/search?q=${encodeURIComponent(query)}&limit=10`);
-            const data = await res.json();
-            if (res.ok) {
-                setPlatformEvents(data.events);
+            // Parallel fetch for both platform and external events
+            const [platformRes, externalData] = await Promise.all([
+                fetch(`http://localhost:5050/api/events/search?q=${encodeURIComponent(query)}&limit=10`),
+                fetchExternalEvents(query)
+            ]);
+
+            const platformData = await platformRes.json();
+            if (platformRes.ok) {
+                setPlatformEvents(platformData.events);
             }
+            
+            // Handle external events response
+            // The API returns { events: [...] }
+            setEvents(externalData.events || externalData);
+
         } catch (e) {
             console.error("Search failed", e);
+            setError("Search failed. Please try again.");
         } finally {
             setLoadingPlatform(false);
+            setLoading(false);
         }
     };
 
@@ -214,7 +227,7 @@ function Explore() {
                                     <p className="text-gray-400 text-sm">No external events found.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+                                <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-2 scrollbar-thin">
                                     {events.map((event) => (
                                         <div 
                                             key={event.id}
