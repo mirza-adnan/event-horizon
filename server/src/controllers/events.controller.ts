@@ -84,6 +84,15 @@ export const createEvent = async (req: Request, res: Response) => {
             });
         }
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (new Date(startDate) < today) {
+            return res.status(400).json({
+                message: "Event start date cannot be in the past",
+            });
+        }
+
         const organizerId = (req as any).organizer?.id;
         if (!organizerId) {
             return res.status(401).json({ message: "Unauthorized" });
@@ -141,6 +150,16 @@ export const createEvent = async (req: Request, res: Response) => {
                     if (segmentStart < eventStartDate) {
                         return res.status(400).json({
                             message: "Segment start time cannot be before event start date"
+                        });
+                    }
+
+                    // Check if segment start time is in the past
+                    // We interpret "not before present date" as roughly today or future.
+                    // Using the same 'today' (midnight) check ensures segments aren't on previous days.
+                    // If stricter check (now) is needed, use new Date() directly.
+                    if (segmentStart < today) {
+                        return res.status(400).json({
+                            message: "Segment start time cannot be in the past",
                         });
                     }
                 }
@@ -433,6 +452,34 @@ export const updateEvent = async (req: Request, res: Response) => {
          // Validations
          if (endDate && new Date(endDate) < new Date(startDate)) {
             return res.status(400).json({ message: "End date error" });
+         }
+
+         const today = new Date();
+         today.setHours(0, 0, 0, 0);
+
+         if (new Date(startDate) < today) {
+             return res.status(400).json({
+                 message: "Event start date cannot be in the past",
+             });
+         }
+         
+         if (segments.length > 0) {
+             const eventStartDate = new Date(startDate);
+             for (const segment of segments) {
+                 if (segment.startTime) {
+                     const segmentStart = new Date(segment.startTime);
+                     if (segmentStart < eventStartDate) {
+                         return res.status(400).json({
+                             message: "Segment start time cannot be before event start date"
+                         });
+                     }
+                     if (segmentStart < today) {
+                         return res.status(400).json({
+                             message: "Segment start time cannot be in the past",
+                         });
+                     }
+                 }
+             }
          }
 
         await db.transaction(async (tx) => {
