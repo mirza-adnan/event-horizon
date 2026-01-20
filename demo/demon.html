@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Event Horizon – Discover Events</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+    }
+
+    header {
+        background: #1e293b;
+        color: white;
+        padding: 16px 24px;
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    .container {
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+    }
+
+    /* FILTER PANEL */
+    .filters {
+        width: 260px;
+        background: white;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .filters h3 {
+        margin-top: 0;
+        font-size: 18px;
+    }
+
+    .filters label {
+        display: block;
+        margin: 8px 0;
+        cursor: pointer;
+    }
+
+    .filters select,
+    .filters input {
+        width: 100%;
+        padding: 6px;
+        margin-top: 6px;
+    }
+
+    /* EVENTS LIST */
+    .events {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+    }
+
+    .event-card {
+        background: white;
+        padding: 14px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        cursor: pointer;
+        transition: transform 0.2s;
+        position: relative;
+    }
+
+    .event-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .event-title {
+        font-weight: bold;
+        font-size: 16px;
+    }
+
+    .event-meta {
+        font-size: 13px;
+        color: #555;
+        margin-top: 6px;
+    }
+
+    .bookmark {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    .bookmarked {
+        color: gold;
+    }
+
+    /* DETAILS PANEL */
+    .details {
+        position: fixed;
+        top: 0;
+        right: -420px;
+        width: 400px;
+        height: 100%;
+        background: white;
+        padding: 20px;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+        transition: right 0.3s;
+        overflow-y: auto;
+    }
+
+    .details.active {
+        right: 0;
+    }
+
+    .close-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        cursor: pointer;
+        border-radius: 6px;
+        float: right;
+    }
+
+    .details h2 {
+        margin-top: 0;
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    🎯 Event Horizon – Find Competitions & Events
+</header>
+
+<div class="container">
+
+    <!-- FILTERS -->
+    <div class="filters">
+        <h3>Filters</h3>
+
+        <input type="text" id="search" placeholder="Search events..." oninput="renderEvents()">
+
+        <h4>Event Level</h4>
+        <label><input type="checkbox" value="School" onchange="renderEvents()"> School</label>
+        <label><input type="checkbox" value="College" onchange="renderEvents()"> College</label>
+        <label><input type="checkbox" value="University" onchange="renderEvents()"> University</label>
+
+        <h4>Bookmarks</h4>
+        <label><input type="checkbox" id="bookmarkFilter" onchange="renderEvents()"> Show bookmarked</label>
+
+        <h4>Sort By</h4>
+        <select id="sort" onchange="renderEvents()">
+            <option value="date">Date (Ascending)</option>
+            <option value="dateDesc">Date (Descending)</option>
+        </select>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="events" id="eventList"></div>
+</div>
+
+<!-- DETAILS PANEL -->
+<div class="details" id="detailsPanel">
+    <button class="close-btn" onclick="closeDetails()">Close</button>
+    <div id="detailsContent"></div>
+</div>
+
+<script>
+    const events = [
+        {
+            title: "Inter School Science Fair",
+            level: "School",
+            date: "2026-02-10",
+            time: "10:00 AM",
+            location: "City High School",
+            description: "A science exhibition for school students.",
+            bookmarked: false
+        },
+        {
+            title: "National College Debate Championship",
+            level: "College",
+            date: "2026-02-18",
+            time: "9:00 AM",
+            location: "Dhaka College Auditorium",
+            description: "Inter-college debate competition.",
+            bookmarked: true
+        },
+        {
+            title: "University Hackathon 2026",
+            level: "University",
+            date: "2026-03-01",
+            time: "24 Hours",
+            location: "IUT Campus",
+            description: "Solve real-world problems in a 24-hour hackathon.",
+            bookmarked: false
+        },
+        {
+            title: "Inter University Programming Contest",
+            level: "University",
+            date: "2026-02-22",
+            time: "11:00 AM",
+            location: "BUET",
+            description: "Competitive programming contest.",
+            bookmarked: false
+        }
+    ];
+
+    function renderEvents() {
+        const list = document.getElementById("eventList");
+        list.innerHTML = "";
+
+        const search = document.getElementById("search").value.toLowerCase();
+        const checkedLevels = [...document.querySelectorAll(".filters input[type=checkbox]:not(#bookmarkFilter):checked")]
+            .map(cb => cb.value);
+        const bookmarkOnly = document.getElementById("bookmarkFilter").checked;
+        const sort = document.getElementById("sort").value;
+
+        let filtered = events.filter(e => {
+            const matchSearch = e.title.toLowerCase().includes(search);
+            const matchLevel = checkedLevels.length === 0 || checkedLevels.includes(e.level);
+            const matchBookmark = !bookmarkOnly || e.bookmarked;
+            return matchSearch && matchLevel && matchBookmark;
+        });
+
+        filtered.sort((a, b) => {
+            if (sort === "date") return new Date(a.date) - new Date(b.date);
+            return new Date(b.date) - new Date(a.date);
+        });
+
+        filtered.forEach((e, index) => {
+            const card = document.createElement("div");
+            card.className = "event-card";
+            card.onclick = () => showDetails(e);
+
+            card.innerHTML = `
+                <div class="bookmark ${e.bookmarked ? 'bookmarked' : ''}"
+                     onclick="toggleBookmark(event, ${index})">★</div>
+                <div class="event-title">${e.title}</div>
+                <div class="event-meta">${e.level} • ${e.date}</div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function toggleBookmark(ev, index) {
+        ev.stopPropagation();
+        events[index].bookmarked = !events[index].bookmarked;
+        renderEvents();
+    }
+
+    function showDetails(e) {
+        document.getElementById("detailsContent").innerHTML = `
+            <h2>${e.title}</h2>
+            <p><strong>Level:</strong> ${e.level}</p>
+            <p><strong>Date:</strong> ${e.date}</p>
+            <p><strong>Time:</strong> ${e.time}</p>
+            <p><strong>Location:</strong> ${e.location}</p>
+            <p><strong>Description:</strong><br>${e.description}</p>
+        `;
+        document.getElementById("detailsPanel").classList.add("active");
+    }
+
+    function closeDetails() {
+        document.getElementById("detailsPanel").classList.remove("active");
+    }
+
+    renderEvents();
+</script>
+
+</body>
+</html>
