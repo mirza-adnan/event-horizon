@@ -245,7 +245,17 @@ export const createEvent = async (req: Request, res: Response) => {
             // but for consistency we can do it here. 
             // Note: If OpenAI fails, we might still want the event created, but for now let's await it.
             try {
-                const textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                let textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                
+                if (segments.length > 0) {
+                     segments.forEach((segment) => {
+                         textToEmbed += `\n${segment.name}\n${segment.description}`;
+                         if (segment.categoryId) {
+                             textToEmbed += `\n${segment.categoryId}`;
+                         }
+                     });
+                }
+
                 const embeddingVector = await generateEmbedding(textToEmbed);
                 
                 await tx
@@ -527,9 +537,17 @@ export const updateEvent = async (req: Request, res: Response) => {
 
             // Update Embedding
             try {
-                // We need to re-fetch categories if we want to include them, 
-                // but we have categoryNames array from earlier
-                const textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                let textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                
+                if (segments.length > 0) {
+                     segments.forEach((segment) => {
+                         textToEmbed += `\n${segment.name}\n${segment.description}`;
+                         if (segment.categoryId) {
+                             textToEmbed += `\n${segment.categoryId}`;
+                         }
+                     });
+                }
+
                 const embeddingVector = await generateEmbedding(textToEmbed);
                 
                 await tx
