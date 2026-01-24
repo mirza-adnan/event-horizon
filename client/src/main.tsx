@@ -12,6 +12,7 @@ import OrganizerDashboard from "./components/OrgDashboard/Dashboard.tsx";
 import EventsList from "./components/OrgDashboard/EventsList.tsx";
 import EventCreate from "./components/OrgDashboard/EventCreate.tsx";
 import UserLogin from "./pages/UserLogin.tsx";
+import Teams from "./pages/Teams.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import OrgLoginRedirect from "./pages/OrgLoginRedirect.tsx";
 import OrgRegistrationRedirect from "./pages/OrgRegistrationRedirect.tsx";
@@ -43,6 +44,10 @@ const router = createBrowserRouter([
             {
                 path: "/login",
                 element: <UserLogin />,
+            },
+            {
+                path: "/teams",
+                element: <Teams />,
             },
             {
                 path: "/organizers/registration",
