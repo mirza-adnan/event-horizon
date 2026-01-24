@@ -21,6 +21,10 @@ case "$1" in
     git config --local user.name "Mubtasim Sajid Arian"
     git config --local user.email "mubtasimsajidahmedarian.11@gmail.com"
     ;;
+  mahmudul)
+    git config --local user.name "Mahmudul Hasan"
+    git config --local user.email "mahmudulsakib3159@gmail.com"
+    ;;
   *)
     echo "Usage: $0 {tanvir|rezwan|ishmam|adnan}"
     exit 1

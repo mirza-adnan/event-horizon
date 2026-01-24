@@ -1,4 +1,8 @@
 import puppeteer from "puppeteer";
+import fs from "fs";
+import path from "path";
+
+const COOKIES_PATH = path.resolve(__dirname, "../../facebook_cookies.json");
 
 export async function scrapeFacebookEvents() {
     let browser;
@@ -15,6 +19,17 @@ export async function scrapeFacebookEvents() {
             userAgent: "Mozilla/5.0 (compatible; EventBot/1.0)",
         });
 
+        // Check for cookies
+        if (fs.existsSync(COOKIES_PATH)) {
+            console.log("Loading cookies from file...");
+            const cookiesString = fs.readFileSync(COOKIES_PATH, 'utf8');
+            const cookies = JSON.parse(cookiesString);
+            await browser.setCookie(...cookies);
+            console.log("Cookies loaded.");
+        } else {
+            console.log("No cookies file found. Proceeding as guest.");
+        }
+
         // Direct navigation to Events page
         console.log("Navigating to Events page...");
         await page.goto("https://www.facebook.com/events", {
@@ -22,31 +37,31 @@ export async function scrapeFacebookEvents() {
         });
 
         // Wait specifically for the login popup or fields to settle
-        try {
-            await page.waitForSelector('input[name="email"]', {
-                timeout: 10000,
-            });
-        } catch (e) {
-            console.log(
-                "Login inputs not found immediately. Checking frames or manual interaction might be needed."
-            );
-        }
+        // try {
+        //     await page.waitForSelector('input[name="email"]', {
+        //         timeout: 10000,
+        //     });
+        // } catch (e) {
+        //     console.log(
+        //         "Login inputs not found immediately. Checking frames or manual interaction might be needed."
+        //     );
+        // }
 
-        console.log("Logging in via popup...");
-        await page.type('input[name="email"]', "l.v.reisender@gmail.com", {
-            delay: 100,
-        });
-        await page.type('input[name="pass"]', "Lv172022", {
-            delay: 100,
-        });
+        // console.log("Logging in via popup...");
+        // await page.type('input[name="email"]', "l.v.reisender@gmail.com", {
+        //     delay: 100,
+        // });
+        // await page.type('input[name="pass"]', "Lv172022", {
+        //     delay: 100,
+        // });
 
-        await page.keyboard.press("Enter");
+        // await page.keyboard.press("Enter");
 
-        console.log("Login submitted. Waiting for load...");
-        await page.waitForNavigation({
-            waitUntil: "networkidle2",
-            timeout: 60000,
-        });
+        // console.log("Login submitted. Waiting for load...");
+        // await page.waitForNavigation({
+        //     waitUntil: "networkidle2",
+        //     timeout: 60000,
+        // });
 
         if (!page.url().includes("events")) {
             console.log(
@@ -150,6 +165,17 @@ export async function scrapeEventsWithoutLogin() {
         const page = await browser.newPage();
        
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+
+        // Check for cookies
+        if (fs.existsSync(COOKIES_PATH)) {
+            console.log("Loading cookies from file...");
+            const cookiesString = fs.readFileSync(COOKIES_PATH, 'utf8');
+            const cookies = JSON.parse(cookiesString);
+            await page.setCookie(...cookies);
+            console.log("Cookies loaded.");
+        } else {
+            console.log("No cookies file found. Proceeding as guest.");
+        }
 
         // Public Search Navigation
         console.log('Navigating to Public Events Search...');
