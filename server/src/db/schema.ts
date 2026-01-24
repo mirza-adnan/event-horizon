@@ -36,12 +36,13 @@ const vector = customType<{ data: number[], driverData: string }>({
 export const usersTable = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
     email: text("email").unique().notNull(),
-    username: text("username").unique().notNull(),
     passwordHash: text("password_hash").notNull(),
     firstName: text("first_name").notNull(),
     lastName: text("last_name"),
     bio: text("bio"),
     phone: text("phone").unique(),
+    verified: boolean("verified").default(false).notNull(),
+    verificationToken: text("verification_token"), // For email verification
 
     avatarUrl: text("avatar_url"),
     dateOfBirth: date("date_of_birth").notNull(),
@@ -50,6 +51,7 @@ export const usersTable = pgTable("users", {
     })
         .notNull()
         .defaultNow(),
+    embedding: vector("embedding"),
 });
 
 export const orgStatusEnum = pgEnum("organizer_status", [
@@ -115,6 +117,7 @@ export const eventsTable = pgTable("events", {
         .notNull()
         .defaultNow(),
     embedding: vector("embedding"),
+    registrationFee: integer("registration_fee").default(0).notNull(),
 });
 
 export const segmentsTable = pgTable("segments", {
@@ -137,6 +140,8 @@ export const segmentsTable = pgTable("segments", {
     }),
     minTeamSize: integer("min_team_size"),
     maxTeamSize: integer("max_team_size"),
+    registrationFee: integer("registration_fee").default(0).notNull(),
+    bannerUrl: text("banner_url"),
     eventId: uuid("event_id")
         .notNull()
         .references(() => eventsTable.id, { onDelete: "cascade" }),
@@ -174,6 +179,101 @@ export const eventCategoriesTable = pgTable(
     })
 );
 
+export const teamsTable = pgTable("teams", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description"),
+    leaderId: uuid("leader_id")
+        .notNull()
+        .references(() => usersTable.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 10 }).unique().notNull(), // For joining via code if needed
+    avatarUrl: text("avatar_url"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export const teamMembersTable = pgTable(
+    "team_members",
+    {
+        teamId: uuid("team_id")
+            .notNull()
+            .references(() => teamsTable.id, { onDelete: "cascade" }),
+        userId: uuid("user_id")
+            .notNull()
+            .references(() => usersTable.id, { onDelete: "cascade" }),
+        role: text("role").notNull().default("member"), // 'leader', 'member'
+        joinedAt: timestamp("joined_at", { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => ({
+        pk: primaryKey({ columns: [table.teamId, table.userId] }),
+    })
+);
+
+export const teamInvitesTable = pgTable("team_invites", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+        .notNull()
+        .references(() => teamsTable.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    status: text("status").notNull().default("pending"), // pending, accepted, rejected
+    invitedBy: uuid("invited_by")
+        .notNull()
+        .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export const teamChatsTable = pgTable("team_chats", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+        .notNull()
+        .references(() => teamsTable.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+        .notNull()
+        .references(() => usersTable.id, { onDelete: "cascade" }),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export const registrationStatusEnum = pgEnum("registration_status", [
+    "pending",
+    "approved",
+    "rejected",
+    "waitlisted",
+]);
+
+export const registrationsTable = pgTable("registrations", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+        .notNull()
+        .references(() => eventsTable.id, { onDelete: "cascade" }),
+    segmentId: uuid("segment_id").references(() => segmentsTable.id, {
+        onDelete: "cascade",
+    }), // Can be null if registering for whole event (if that's a thing) or specific segment
+    userId: uuid("user_id").references(() => usersTable.id, {
+        onDelete: "cascade",
+    }), // Null if team registration? Or user registering solo
+    teamId: uuid("team_id").references(() => teamsTable.id, {
+        onDelete: "cascade",
+    }), // Null if solo registration
+    status: registrationStatusEnum("status").notNull().default("pending"),
+    paymentStatus: text("payment_status").default("unpaid"), // paid, unpaid
+    amount: integer("amount").default(0),
+    data: json("data"), // Flexible field for form answers
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
 export const eventsRelations = relations(eventsTable, ({ one, many }) => ({
     organizer: one(orgsTable, {
         fields: [eventsTable.organizerId],
@@ -181,6 +281,7 @@ export const eventsRelations = relations(eventsTable, ({ one, many }) => ({
     }),
     eventCategories: many(eventCategoriesTable),
     segments: many(segmentsTable),
+    registrations: many(registrationsTable),
 }));
 
 export const segmentsRelations = relations(segmentsTable, ({ one, many }) => ({
@@ -192,6 +293,35 @@ export const segmentsRelations = relations(segmentsTable, ({ one, many }) => ({
         fields: [segmentsTable.categoryId],
         references: [categoriesTable.name],
     }),
+    registrations: many(registrationsTable),
+}));
+
+export const teamsRelations = relations(teamsTable, ({ one, many }) => ({
+    leader: one(usersTable, {
+        fields: [teamsTable.leaderId],
+        references: [usersTable.id],
+    }),
+    members: many(teamMembersTable),
+    invites: many(teamInvitesTable),
+    chats: many(teamChatsTable),
+    registrations: many(registrationsTable),
+}));
+
+export const teamMembersRelations = relations(teamMembersTable, ({ one }) => ({
+    team: one(teamsTable, {
+        fields: [teamMembersTable.teamId],
+        references: [teamsTable.id],
+    }),
+    user: one(usersTable, {
+        fields: [teamMembersTable.userId],
+        references: [usersTable.id],
+    }),
+}));
+
+export const usersRelations = relations(usersTable, ({ many }) => ({
+    teamMemberships: many(teamMembersTable),
+    registrations: many(registrationsTable),
+    teamInvites: many(teamInvitesTable), // Invites sent by user? Or received? Schema says invitedBy.
 }));
 
 export const categoriesRelations = relations(categoriesTable, ({ many }) => ({
@@ -228,6 +358,12 @@ export type NewSegment = InferInsertModel<typeof segmentsTable>;
 export type Category = InferSelectModel<typeof categoriesTable>;
 export type NewCategory = InferInsertModel<typeof categoriesTable>;
 
+export type Team = InferSelectModel<typeof teamsTable>;
+export type NewTeam = InferInsertModel<typeof teamsTable>;
+
+export type Registration = InferSelectModel<typeof registrationsTable>;
+export type NewRegistration = InferInsertModel<typeof registrationsTable>;
+
 export const externalEventsTable = pgTable("external_events", {
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title").notNull(),
@@ -244,6 +380,7 @@ export const externalEventsTable = pgTable("external_events", {
     createdAt: timestamp("created_at", { withTimezone: true })
         .notNull()
         .defaultNow(),
+    embedding: vector("embedding"),
 });
 
 export type ExternalEvent = InferSelectModel<typeof externalEventsTable>;
