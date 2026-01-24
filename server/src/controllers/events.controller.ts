@@ -84,6 +84,15 @@ export const createEvent = async (req: Request, res: Response) => {
             });
         }
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (new Date(startDate) < today) {
+            return res.status(400).json({
+                message: "Event start date cannot be in the past",
+            });
+        }
+
         const organizerId = (req as any).organizer?.id;
         if (!organizerId) {
             return res.status(401).json({ message: "Unauthorized" });
@@ -141,6 +150,16 @@ export const createEvent = async (req: Request, res: Response) => {
                     if (segmentStart < eventStartDate) {
                         return res.status(400).json({
                             message: "Segment start time cannot be before event start date"
+                        });
+                    }
+
+                    // Check if segment start time is in the past
+                    // We interpret "not before present date" as roughly today or future.
+                    // Using the same 'today' (midnight) check ensures segments aren't on previous days.
+                    // If stricter check (now) is needed, use new Date() directly.
+                    if (segmentStart < today) {
+                        return res.status(400).json({
+                            message: "Segment start time cannot be in the past",
                         });
                     }
                 }
@@ -215,8 +234,8 @@ export const createEvent = async (req: Request, res: Response) => {
                     endDate: endDate ? new Date(endDate) : null,
                     status,
                     bannerUrl, // Use the relative path
-                    isOnline: Boolean(isOnline),
-                    hasMultipleSegments: Boolean(hasMultipleSegments),
+                    isOnline: String(isOnline) === "true",
+                    hasMultipleSegments: String(hasMultipleSegments) === "true",
                     organizerId,
                 })
                 .returning();
@@ -226,7 +245,17 @@ export const createEvent = async (req: Request, res: Response) => {
             // but for consistency we can do it here. 
             // Note: If OpenAI fails, we might still want the event created, but for now let's await it.
             try {
-                const textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                let textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                
+                if (segments.length > 0) {
+                     segments.forEach((segment) => {
+                         textToEmbed += `\n${segment.name}\n${segment.description}`;
+                         if (segment.categoryId) {
+                             textToEmbed += `\n${segment.categoryId}`;
+                         }
+                     });
+                }
+
                 const embeddingVector = await generateEmbedding(textToEmbed);
                 
                 await tx
@@ -435,6 +464,34 @@ export const updateEvent = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "End date error" });
          }
 
+         const today = new Date();
+         today.setHours(0, 0, 0, 0);
+
+         if (new Date(startDate) < today) {
+             return res.status(400).json({
+                 message: "Event start date cannot be in the past",
+             });
+         }
+         
+         if (segments.length > 0) {
+             const eventStartDate = new Date(startDate);
+             for (const segment of segments) {
+                 if (segment.startTime) {
+                     const segmentStart = new Date(segment.startTime);
+                     if (segmentStart < eventStartDate) {
+                         return res.status(400).json({
+                             message: "Segment start time cannot be before event start date"
+                         });
+                     }
+                     if (segmentStart < today) {
+                         return res.status(400).json({
+                             message: "Segment start time cannot be in the past",
+                         });
+                     }
+                 }
+             }
+         }
+
         await db.transaction(async (tx) => {
             // Update Base Event
             await tx.update(eventsTable).set({
@@ -443,8 +500,8 @@ export const updateEvent = async (req: Request, res: Response) => {
                 endDate: endDate ? new Date(endDate) : null,
                 status,
                 bannerUrl,
-                isOnline: Boolean(isOnline),
-                hasMultipleSegments: Boolean(hasMultipleSegments),
+                isOnline: String(isOnline) === "true",
+                hasMultipleSegments: String(hasMultipleSegments) === "true",
                 updatedAt: new Date()
             }).where(eq(eventsTable.id, id));
 
@@ -480,9 +537,17 @@ export const updateEvent = async (req: Request, res: Response) => {
 
             // Update Embedding
             try {
-                // We need to re-fetch categories if we want to include them, 
-                // but we have categoryNames array from earlier
-                const textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                let textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                
+                if (segments.length > 0) {
+                     segments.forEach((segment) => {
+                         textToEmbed += `\n${segment.name}\n${segment.description}`;
+                         if (segment.categoryId) {
+                             textToEmbed += `\n${segment.categoryId}`;
+                         }
+                     });
+                }
+
                 const embeddingVector = await generateEmbedding(textToEmbed);
                 
                 await tx
