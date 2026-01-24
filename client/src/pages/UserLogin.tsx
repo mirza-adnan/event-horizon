@@ -1,15 +1,26 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Input from "../components/Input";
+import { FaCheckCircle } from "react-icons/fa";
 
 export default function UserLogin() {
     const [formData, setFormData] = useState({
-        username: "",
+        email: "",
         password: "",
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<string | null>(null); // For "Verified" toast
     const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        // Check for verified query param
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get("verified") === "true") {
+            setSuccessMsg("Email successfully verified! You can now access all features.");
+        }
+    }, [location]);
 
     const handleInputChange = (name: string, value: string) => {
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -29,9 +40,10 @@ export default function UserLogin() {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        username: formData.username,
+                        email: formData.email,
                         password: formData.password,
                     }),
+                    credentials: "include"
                 }
             );
 
@@ -41,8 +53,9 @@ export default function UserLogin() {
                 setError(data.message || "Login failed");
                 return;
             }
-
-            navigate("/");
+            
+            // Force reload to update auth state in context/hooks
+            window.location.href = "/explore";
         } catch (err) {
             setError("An unexpected error occurred");
             console.error("Login error:", err);
@@ -61,6 +74,13 @@ export default function UserLogin() {
                         Log in to your Event Horizon account
                     </p>
                 </div>
+                
+                {successMsg && (
+                    <div className="mb-6 p-4 bg-green-900/20 border border-green-900 rounded-lg flex items-center gap-3 text-green-400">
+                        <FaCheckCircle className="flex-shrink-0" />
+                        <p>{successMsg}</p>
+                    </div>
+                )}
 
                 {error && (
                     <div className="mb-4 text-sm text-red-400">{error}</div>
@@ -71,11 +91,12 @@ export default function UserLogin() {
                     className="space-y-6"
                 >
                     <Input
-                        label="Username"
-                        name="username"
-                        value={formData.username}
+                        label="Email"
+                        type="email"
+                        name="email"
+                        value={formData.email}
                         onChange={(e) =>
-                            handleInputChange("username", e.target.value)
+                            handleInputChange("email", e.target.value)
                         }
                         required
                     />

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../components/Input";
+import { FaEnvelopeOpenText } from "react-icons/fa";
 
 export default function UserSignup() {
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
-        username: "",
         email: "",
         phone: "",
         password: "",
@@ -16,6 +16,7 @@ export default function UserSignup() {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
     const navigate = useNavigate();
 
     const handleInputChange = (name: string, value: string) => {
@@ -38,7 +39,6 @@ export default function UserSignup() {
                     body: JSON.stringify({
                         firstName: formData.firstName,
                         lastName: formData.lastName,
-                        username: formData.username,
                         email: formData.email,
                         phone: formData.phone,
                         password: formData.password,
@@ -56,7 +56,7 @@ export default function UserSignup() {
                 return;
             }
 
-            navigate("/");
+            setSuccess(true);
         } catch (err) {
             setError("An unexpected error occurred");
             console.error("Signup error:", err);
@@ -64,6 +64,26 @@ export default function UserSignup() {
             setLoading(false);
         }
     };
+
+    if (success) {
+        return (
+            <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+                <div className="w-full max-w-md bg-zinc-900 rounded-2xl p-8 shadow-xl text-center">
+                    <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <FaEnvelopeOpenText className="text-3xl text-accent" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Verify Your Email</h2>
+                    <p className="text-gray-400 mb-6">
+                        We've sent a verification link to <span className="text-white font-medium">{formData.email}</span>. 
+                        Please check your inbox and click the link to activate your account.
+                    </p>
+                    <div className="text-sm text-gray-500">
+                        Didn't receive it? <button className="text-accent hover:underline">Resend</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
@@ -109,17 +129,8 @@ export default function UserSignup() {
                         />
                     </div>
 
-                    {/* Username & Email */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Input
-                            label="Username"
-                            name="username"
-                            value={formData.username}
-                            onChange={(e) =>
-                                handleInputChange("username", e.target.value)
-                            }
-                            required
-                        />
+                    {/* Email */}
+                    <div>
                         <Input
                             label="Email"
                             type="email"
