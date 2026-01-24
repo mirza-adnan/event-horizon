@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
-import { eq, sql, inArray } from "drizzle-orm";
+import { eq, sql, inArray, and, desc } from "drizzle-orm";
 import db from "../db";
 import {
     teamsTable,
     teamMembersTable,
     usersTable,
     teamInvitesTable,
+    teamChatsTable,
     NewTeam,
     NewUser,
 } from "../db/schema";
@@ -107,5 +108,161 @@ export const createTeam = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Create team error:", error);
         res.status(500).json({ message: "Failed to create team" });
+    }
+};
+
+// Get team details (members, events, etc) - restricted to members
+export const getTeamDetails = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { teamId } = req.params;
+
+        // Verify membership
+        const [membership] = await db
+            .select()
+            .from(teamMembersTable)
+            .where(
+                and(
+                    eq(teamMembersTable.teamId, teamId),
+                    eq(teamMembersTable.userId, userId)
+                )
+            );
+
+        if (!membership) {
+            return res.status(403).json({ message: "You are not a member of this team" });
+        }
+
+        // Fetch Team Info
+        const [team] = await db
+            .select()
+            .from(teamsTable)
+            .where(eq(teamsTable.id, teamId));
+
+        // Fetch Members
+        const members = await db
+            .select({
+                userId: usersTable.id,
+                firstName: usersTable.firstName,
+                lastName: usersTable.lastName,
+                username: usersTable.email, // Using email as username for now as username was removed
+                email: usersTable.email,
+                avatarUrl: usersTable.avatarUrl,
+                role: teamMembersTable.role,
+                joinedAt: teamMembersTable.joinedAt
+            })
+            .from(teamMembersTable)
+            .leftJoin(usersTable, eq(teamMembersTable.userId, usersTable.id))
+            .where(eq(teamMembersTable.teamId, teamId));
+
+        res.json({
+            team,
+            members,
+            myRole: membership.role
+        });
+
+    } catch (error) {
+        console.error("Get team details error:", error);
+        res.status(500).json({ message: "Failed to fetch team details" });
+    }
+};
+
+// Get Team Chats
+export const getTeamChats = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { teamId } = req.params;
+
+        // Verify membership
+        const [membership] = await db
+            .select()
+            .from(teamMembersTable)
+            .where(
+                and(
+                    eq(teamMembersTable.teamId, teamId),
+                    eq(teamMembersTable.userId, userId)
+                )
+            );
+
+        if (!membership) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        const chats = await db
+            .select({
+                id: teamChatsTable.id,
+                message: teamChatsTable.message,
+                createdAt: teamChatsTable.createdAt,
+                userId: usersTable.id,
+                firstName: usersTable.firstName,
+                lastName: usersTable.lastName,
+                avatarUrl: usersTable.avatarUrl
+            })
+            .from(teamChatsTable)
+            .leftJoin(usersTable, eq(teamChatsTable.userId, usersTable.id))
+            .where(eq(teamChatsTable.teamId, teamId))
+            .orderBy(desc(teamChatsTable.createdAt))
+            .limit(50); // Pagination later
+
+        res.json({ chats: chats.reverse() }); // Return oldest first for UI
+
+    } catch (error) {
+         console.error("Get chats error:", error);
+        res.status(500).json({ message: "Failed to fetch chats" });
+    }
+};
+
+// Send Team Chat
+export const sendTeamChat = async (req: Request, res: Response) => {
+    try {
+         const userId = (req as any).userId;
+        const { teamId } = req.params;
+        const { message } = req.body;
+
+        if (!message) return res.status(400).json({ message: "Message cannot be empty" });
+
+         // Verify membership
+        const [membership] = await db
+            .select()
+            .from(teamMembersTable)
+            .where(
+                and(
+                    eq(teamMembersTable.teamId, teamId),
+                    eq(teamMembersTable.userId, userId)
+                )
+            );
+
+        if (!membership) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        const [newChat] = await db.insert(teamChatsTable).values({
+            teamId,
+            userId,
+            message
+        }).returning();
+
+        // Check if we need to return populated user info for real-time update
+        // efficient to just return the chat and handle state in frontend or fetch user info separately
+        // but for now let's query the specific chat with user info to be safe
+        
+        const [populatedChat] = await db
+            .select({
+                id: teamChatsTable.id,
+                message: teamChatsTable.message,
+                createdAt: teamChatsTable.createdAt,
+                userId: usersTable.id,
+                firstName: usersTable.firstName,
+                lastName: usersTable.lastName,
+                avatarUrl: usersTable.avatarUrl
+            })
+            .from(teamChatsTable)
+            .leftJoin(usersTable, eq(teamChatsTable.userId, usersTable.id))
+            .where(eq(teamChatsTable.id, newChat.id));
+
+        res.status(201).json({ chat: populatedChat });
+
+    } catch (error) {
+        console.error("Send chat error:", error);
+        res.status(500).json({ message: "Failed to send message" });
     }
 };
