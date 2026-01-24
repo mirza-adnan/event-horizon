@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import NavBar from "../components/HomePage/HomeNavBar";
-import HomeFooter from "../components/HomePage/HomeFooter";
 import ExternalEventCard from "../components/ExternalEventCard";
 import { fetchExternalEvents } from "../utils/api";
 import { FaCompass, FaSpinner, FaSearch } from "react-icons/fa";
@@ -44,7 +42,7 @@ function Explore() {
             try {
                 const data = await fetchExternalEvents();
                 // Check if data.events exists (backend structure might be { events: [...] })
-                setEvents(data.events || data); 
+                setEvents(data.events || data);
             } catch (err) {
                 setError("Failed to load events. Please try again later.");
             } finally {
@@ -53,23 +51,36 @@ function Explore() {
         };
 
         loadEvents();
-        
+       
         // Initial load of platform events (no query = default list)
         handleSearch("");
     }, []);
 
     const handleSearch = async (query: string) => {
         setLoadingPlatform(true);
+        setLoading(true); // Also load external events
         try {
-            const res = await fetch(`http://localhost:5050/api/events/search?q=${encodeURIComponent(query)}&limit=10`);
-            const data = await res.json();
-            if (res.ok) {
-                setPlatformEvents(data.events);
+            // Parallel fetch for both platform and external events
+            const [platformRes, externalData] = await Promise.all([
+                fetch(`http://localhost:5050/api/events/search?q=${encodeURIComponent(query)}&limit=10`),
+                fetchExternalEvents(query)
+            ]);
+
+            const platformData = await platformRes.json();
+            if (platformRes.ok) {
+                setPlatformEvents(platformData.events);
             }
+           
+            // Handle external events response
+            // The API returns { events: [...] }
+            setEvents(externalData.events || externalData);
+
         } catch (e) {
             console.error("Search failed", e);
+            setError("Search failed. Please try again.");
         } finally {
             setLoadingPlatform(false);
+            setLoading(false);
         }
     };
 
@@ -103,16 +114,14 @@ function Explore() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col bg-bgr">
-            <NavBar />
-            
+        <div className="flex flex-col">
             <main className="flex-grow container mx-auto px-6 py-10 max-w-7xl">
                 <div className="flex flex-col items-center mb-12 text-center">
                     <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 mb-4 jaro tracking-wide">
                         Explore Events
                     </h1>
                     <p className="text-gray-400 max-w-2xl text-lg mb-8">
-                        Discover exciting competitions, workshops, and conferences happening around you. 
+                        Discover exciting competitions, workshops, and conferences happening around you.
                         Curated from across the web.
                     </p>
 
@@ -120,13 +129,13 @@ function Explore() {
                     <form onSubmit={onSearchSubmit} className="relative w-full max-w-xl">
                         <input
                             type="text"
-                            placeholder="Search for events..."
+                            placeholder="Find events (e.g., 'React workshop', 'Hackathon next week')..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-12 pr-4 py-3 rounded-full bg-zinc-900/80 border border-zinc-700 focus:border-accent text-white outline-none transition-colors"
                         />
                         <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <button 
+                        <button
                             type="submit"
                             className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-accent text-black px-4 py-1.5 rounded-full font-medium hover:bg-accent/90 transition-colors"
                         >
@@ -141,7 +150,7 @@ function Explore() {
                     <div className="flex-1">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-2xl font-bold text-white border-l-4 border-accent pl-3">
-                                Events
+                                Platform Events
                             </h2>
                         </div>
 
@@ -160,8 +169,8 @@ function Explore() {
                                     <Link key={event.id} to={`/events/${event.id}`} className="group block bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-accent transition-colors">
                                         <div className="aspect-video bg-zinc-800 relative overflow-hidden">
                                             {event.bannerUrl ? (
-                                                <img 
-                                                    src={`http://localhost:5050${event.bannerUrl}`} 
+                                                <img
+                                                    src={`http://localhost:5050${event.bannerUrl}`}
                                                     alt={event.title}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                 />
@@ -176,7 +185,7 @@ function Explore() {
                                                 <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-accent transition-colors">{event.title}</h3>
                                             </div>
                                             <p className="text-zinc-400 text-sm mb-4 line-clamp-2">{event.description}</p>
-                                            
+                                           
                                             <div className="flex items-center gap-4 text-sm text-zinc-500">
                                                 <span>{new Date(event.startDate).toLocaleDateString()}</span>
                                                 <span>•</span>
@@ -216,7 +225,7 @@ function Explore() {
                             ) : (
                                 <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
                                     {events.map((event) => (
-                                        <div 
+                                        <div
                                             key={event.id}
                                             onMouseEnter={() => handleHover(event.id)}
                                             onClick={() => handleClick(event.id)}
@@ -230,8 +239,6 @@ function Explore() {
                     </div>
                 </div>
             </main>
-
-            <HomeFooter />
         </div>
     );
 }
