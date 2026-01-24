@@ -5,7 +5,7 @@ import { eq, or } from "drizzle-orm";
 import db from "../db";
 import { orgsTable } from "../db/schema";
 import fs from "fs";
-import sendConfirmationEmail from "../utils/sendEmail";
+import { sendOrganizerVerification } from "../utils/sendEmail";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -75,7 +75,7 @@ export const organizerRegister = async (req: Request, res: Response) => {
             .returning();
 
         // Send confirmation email
-        sendConfirmationEmail(newOrg.name, newOrg.email, newOrg.id);
+        sendOrganizerVerification(newOrg.name, newOrg.email, newOrg.id);
 
         const token = jwt.sign({ orgId: newOrg.id }, JWT_SECRET, {
             expiresIn: "1h",
