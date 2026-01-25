@@ -5,6 +5,7 @@ import eventsRouter from "./events.routes";
 import categoriesRouter from "./categories.routes";
 import externalEventsRouter from "./external-events.routes";
 import teamsRouter from "./teams.routes";
+import registrationsRouter from "./registrations.routes";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use("/events", eventsRouter);
 router.use("/categories", categoriesRouter);
 router.use("/external-events", externalEventsRouter);
 router.use("/teams", teamsRouter);
+router.use("/registrations", registrationsRouter);
 
 export default router;

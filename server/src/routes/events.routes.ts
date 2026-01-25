@@ -25,7 +25,7 @@ router.get("/scrape-external-events", scrapeExternalEvents);
 router.get("/search", searchEvents);
 
 // New Routes
-router.get("/:id", requireOrganizer, getEventById);
+router.get("/:id", getEventById);
 router.put("/:id", requireOrganizer, uploadEventBanner.single("banner"), updateEvent);
 
 export default router;
