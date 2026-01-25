@@ -14,6 +14,7 @@ import EventCreate from "./components/OrgDashboard/EventCreate.tsx";
 import UserLogin from "./pages/UserLogin.tsx";
 import Teams from "./pages/Teams.tsx";
 import TeamRoom from "./pages/TeamRoom.tsx";
+import EventDetails from "./pages/EventDetails.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import OrgLoginRedirect from "./pages/OrgLoginRedirect.tsx";
 import OrgRegistrationRedirect from "./pages/OrgRegistrationRedirect.tsx";
@@ -53,6 +54,10 @@ const router = createBrowserRouter([
             {
                 path: "/teams/:teamId",
                 element: <TeamRoom />,
+            },
+            {
+                path: "/events/:id",
+                element: <EventDetails />,
             },
             {
                 path: "/organizers/registration",

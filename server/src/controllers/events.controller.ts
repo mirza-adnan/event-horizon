@@ -5,6 +5,7 @@ import {
     categoriesTable,
     eventCategoriesTable,
     segmentsTable,
+    orgsTable,
 } from "../db/schema";
 import { eq, and, or, desc } from "drizzle-orm";
 import axios from "axios";
@@ -346,12 +347,8 @@ export const getMyEvents = async (req: Request, res: Response) => {
 export const getEventById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const organizerId = (req as any).organizer?.id;
+        // const organizerId = (req as any).organizer?.id; // Removed auth check for public access
         
-        if (!organizerId) {
-             return res.status(401).json({ message: "Unauthorized" });
-        }
-
         // Fetch Event
         const [event] = await db
             .select()
@@ -360,11 +357,6 @@ export const getEventById = async (req: Request, res: Response) => {
 
         if (!event) {
             return res.status(404).json({ message: "Event not found" });
-        }
-
-        // Basic authorization check
-        if (event.organizerId !== organizerId) {
-             return res.status(403).json({ message: "Forbidden" });
         }
 
         // Fetch Segments
@@ -380,12 +372,19 @@ export const getEventById = async (req: Request, res: Response) => {
             })
             .from(eventCategoriesTable)
             .where(eq(eventCategoriesTable.eventId, id));
+            
+        // Fetch Organizer Name
+        const [organizer] = await db
+             .select({ name: orgsTable.name })
+             .from(orgsTable)
+             .where(eq(orgsTable.id, event.organizerId));
 
-        // Construct response object matching expected validation
+        // Construct response object
         const fullEvent = {
             ...event,
             segments,
-            eventCategories: eventCategories
+            eventCategories: eventCategories,
+            organizer: organizer || { name: "Unknown" }
         };
 
         res.json({ event: fullEvent });
