@@ -15,7 +15,6 @@ import UserLogin from "./pages/UserLogin.tsx";
 import Teams from "./pages/Teams.tsx";
 import TeamRoom from "./pages/TeamRoom.tsx";
 import EventDetails from "./pages/EventDetails.tsx";
-import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import OrgLoginRedirect from "./pages/OrgLoginRedirect.tsx";
 import OrgRegistrationRedirect from "./pages/OrgRegistrationRedirect.tsx";
 import AdminDashboard from "./components/Admin/AdminDashboard.tsx";
@@ -25,6 +24,9 @@ import AdminCategories from "./components/Admin/AdminCategories.tsx";
 import AdminLogin from "./pages/AdminLogin.tsx";
 import AdminProtectedRoute from "./components/Admin/AdminProtectedRoute.tsx";
 import AdminExternalEvents from "./components/Admin/AdminExternalEvents.tsx";
+import OrgProtectedRoute from "./components/OrgDashboard/OrgProtectedRoute.tsx";
+import EventManagement from "./pages/EventManagement.tsx";
+import Notifications from "./pages/Notifications.tsx";
 
 const router = createBrowserRouter([
     {
@@ -60,6 +62,10 @@ const router = createBrowserRouter([
                 element: <EventDetails />,
             },
             {
+                path: "/notifications",
+                element: <Notifications />,
+            },
+            {
                 path: "/organizers/registration",
                 element: <OrgRegistrationRedirect />,
             },
@@ -71,9 +77,9 @@ const router = createBrowserRouter([
             {
                 path: "/organizers",
                 element: (
-                    <ProtectedRoute>
+                    <OrgProtectedRoute>
                         <OrganizerDashboard />
-                    </ProtectedRoute>
+                    </OrgProtectedRoute>
                 ),
                 children: [
                     { index: true, element: <EventsList /> },
@@ -83,6 +89,14 @@ const router = createBrowserRouter([
                     { path: "profile", element: <div>Profile Page</div> },
                     { path: "settings", element: <div>Settings Page</div> },
                 ],
+            },
+            {
+                path: "/organizers/event/manage/:id",
+                element: (
+                    <OrgProtectedRoute>
+                        <EventManagement />
+                    </OrgProtectedRoute>
+                ),
             },
             {
                 path: "/admin/login",
