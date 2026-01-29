@@ -7,8 +7,10 @@ import {
     usersTable,
     teamInvitesTable,
     teamChatsTable,
+    notificationsTable,
     NewTeam,
     NewUser,
+    NewNotification
 } from "../db/schema";
 
 // Get all teams for the current user
@@ -95,6 +97,22 @@ export const createTeam = async (req: Request, res: Response) => {
                         invitedBy: userId,
                         status: "pending"
                     });
+                    
+                    // Trigger Internal Notification if user exists
+                    const [invitedUser] = await tx
+                        .select()
+                        .from(usersTable)
+                        .where(eq(usersTable.email, email));
+                    
+                    if (invitedUser) {
+                        await tx.insert(notificationsTable).values({
+                            userId: invitedUser.id,
+                            type: "invite",
+                            message: `You have been invited to join team "${name}"`,
+                            link: "/teams",
+                            isRead: false
+                        } as NewNotification);
+                    }
                     
                     // TODO: Send Email Notification
                  }

@@ -85,6 +85,7 @@ export const organizerRegister = async (req: Request, res: Response) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             maxAge: 3600000,
+            path: "/",
         });
 
         res.status(201).json({
@@ -156,6 +157,7 @@ export async function organizerLogin(req: Request, res: Response) {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             maxAge: 3600000,
+            path: "/",
         });
 
         res.status(200).json({
