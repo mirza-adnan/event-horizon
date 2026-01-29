@@ -7,6 +7,7 @@ import {
     segmentsTable,
     teamsTable,
     teamMembersTable,
+    usersTable,
 } from "../db/schema";
 import { NewRegistration } from "../db/schema";
 
@@ -87,6 +88,41 @@ export const createRegistration = async (req: Request, res: Response) => {
             
             if (existing) {
                 return res.status(409).json({ message: "You are already registered for this segment" });
+            }
+
+            // 3. Time Overlap Check
+            const [newSegment] = await db.select().from(segmentsTable).where(eq(segmentsTable.id, segmentId));
+            if (!newSegment) return res.status(404).json({ message: "Segment not found" });
+
+            const existingRegs = await db
+                .select({
+                    startTime: segmentsTable.startTime,
+                    endTime: segmentsTable.endTime,
+                    name: segmentsTable.name
+                })
+                .from(registrationsTable)
+                .innerJoin(segmentsTable, eq(registrationsTable.segmentId, segmentsTable.id))
+                .where(
+                    and(
+                        eq(registrationsTable.eventId, eventId),
+                        teamId ? eq(registrationsTable.teamId, teamId) : eq(registrationsTable.userId, userId)
+                    )
+                );
+
+            for (const reg of existingRegs) {
+                if (!newSegment.startTime || !newSegment.endTime || !reg.startTime || !reg.endTime) continue;
+
+                const s1 = new Date(newSegment.startTime).getTime();
+                const e1 = new Date(newSegment.endTime).getTime();
+                const s2 = new Date(reg.startTime).getTime();
+                const e2 = new Date(reg.endTime).getTime();
+
+                // Conflict: (start1 < end2) && (end1 > start2)
+                if (s1 < e2 && e1 > s2) {
+                    return res.status(400).json({ 
+                        message: `Time overlap with your registered segment: ${reg.name}` 
+                    });
+                }
             }
 
             const [reg] = await db.insert(registrationsTable).values({
@@ -172,8 +208,8 @@ export const checkRegistrationStatus = async (req: Request, res: Response) => {
         const { eventId } = req.params;
 
         // Check if I am registered individually
-        const individual = await db
-            .select()
+        const individualRegs = await db
+            .select({ segmentId: registrationsTable.segmentId })
             .from(registrationsTable)
             .where(
                 and(
@@ -184,29 +220,81 @@ export const checkRegistrationStatus = async (req: Request, res: Response) => {
 
         // Check if any of my teams are registered
         const myTeams = await db
-            .select()
+            .select({ teamId: teamMembersTable.teamId })
             .from(teamMembersTable)
             .where(eq(teamMembersTable.userId, userId));
         
         const myTeamIds = myTeams.map(t => t.teamId);
         
-        let teamRegs: any[] = [];
+        const teamSegmentIds: any[] = [];
         if (myTeamIds.length > 0) {
-             // We need to import 'inArray' for this.
-             // or loop? inArray is better.
+            const teamRegs = await db
+                .select({ segmentId: registrationsTable.segmentId })
+                .from(registrationsTable)
+                .where(
+                    and(
+                        eq(registrationsTable.eventId, eventId),
+                        inArray(registrationsTable.teamId, myTeamIds)
+                    )
+                );
+            teamRegs.forEach(r => teamSegmentIds.push(r.segmentId));
         }
         
-        // Actually, the simpler checkRegistrationStatus might just return boolean "isRegistered" and details.
-        // For simplicity now, we can skip this endpoint and just let the frontend use `getMyRegistrations` or handle it in `getEventDetails` (backend side).
-        // Since `getEventDetails` (public) shouldn't leak user info, we need a separate user-specific call or middleware.
-        
-        // Let's just return what we have.
-        res.json({
-            individual,
-            // teamRegs // implement if needed
-        });
+        // Combine and unique
+        const registeredSegmentIds = Array.from(new Set([
+            ...individualRegs.map(r => r.segmentId),
+            ...teamSegmentIds.map(id => id)
+        ]));
+
+        res.json({ registeredSegmentIds });
 
     } catch (error) {
+        console.error("Check registration status error:", error);
         res.status(500).json({ message: "Error" });
+    }
+};
+
+// Get Event Registrations (Organizer View)
+export const getEventRegistrants = async (req: Request, res: Response) => {
+    try {
+        const organizerId = (req as any).organizer?.id;
+        const { eventId } = req.params;
+        
+        if (!organizerId) return res.status(401).json({ message: "Unauthorized" });
+
+        // Verify event ownership
+        const [event] = await db.select().from(eventsTable).where(eq(eventsTable.id, eventId));
+        if (!event || event.organizerId !== organizerId) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        // Fetch registrations with User/Team info
+        const registrations = await db
+            .select({
+                id: registrationsTable.id,
+                status: registrationsTable.status,
+                paymentStatus: registrationsTable.paymentStatus,
+                segmentName: segmentsTable.name,
+                // Individual
+                userId: usersTable.id,
+                userName: usersTable.firstName, 
+                userEmail: usersTable.email,
+                // Team
+                teamId: teamsTable.id,
+                teamName: teamsTable.name,
+                teamLeader: teamsTable.leaderId
+                // TODO: join leader info if needed
+            })
+            .from(registrationsTable)
+            .leftJoin(usersTable, eq(registrationsTable.userId, usersTable.id))
+            .leftJoin(teamsTable, eq(registrationsTable.teamId, teamsTable.id))
+            .leftJoin(segmentsTable, eq(registrationsTable.segmentId, segmentsTable.id))
+            .where(eq(registrationsTable.eventId, eventId));
+
+        res.json({ registrations });
+
+    } catch (error) {
+        console.error("Organizer registrations fetch error:", error);
+        res.status(500).json({ message: "Failed to fetch registrations" });
     }
 };
