@@ -5,6 +5,7 @@ import EventBasicInfo from "./EventBasicInfo";
 import EventCategories from "./EventCategories";
 import EventSegments from "./EventSegments";
 import { cn } from "../../utils/helpers";
+import EventDetailsView from "../EventDetailsView";
 
 interface Category {
     name: string;
@@ -575,7 +576,48 @@ export default function EventCreate() {
         { id: "basic", label: "Basic Info" },
         { id: "categories", label: "Categories" },
         ...(hasMultipleSegments ? [{ id: "segments", label: "Segments" }] : []),
+        { id: "preview", label: "Preview" },
     ];
+
+    // Construct preview event object
+    const getPreviewEvent = () => {
+        const previewSegments = hasMultipleSegments 
+            ? segments.map(s => ({
+                id: s.id,
+                name: s.name,
+                description: s.description,
+                startTime: s.startTime,
+                endTime: s.endTime,
+                isTeamSegment: s.isTeamSegment,
+                registrationFee: 0 // Placeholder as it's not in form state yet? Or maybe I missed it.
+            })) 
+            : [{
+                id: "single",
+                name: "Main Event",
+                description: basicInfo.description,
+                startTime: basicInfo.startDate,
+                endTime: basicInfo.endDate,
+                isTeamSegment: singleSegmentData.isTeamSegment,
+                registrationFee: 0
+            }];
+
+        return {
+            id: "preview",
+            title: basicInfo.title || "Untitled Event",
+            description: basicInfo.description || "No description provided.",
+            bannerUrl: bannerUrl,
+            startDate: basicInfo.startDate || new Date().toISOString(),
+            endDate: basicInfo.endDate || "",
+            address: basicInfo.address || "TBD",
+            city: basicInfo.city || "TBD",
+            location: basicInfo.address, // mapping
+            isOnline: isOnline,
+            segments: previewSegments,
+            organizer: {
+                name: "You (Organizer)"
+            }
+        };
+    };
 
     return (
         <div className="max-w-4xl mx-auto min-h-[100dvh] flex flex-col">
@@ -614,83 +656,108 @@ export default function EventCreate() {
                 </nav>
             </div>
 
-            <form
-                onSubmit={(e) => e.preventDefault()}
-                className="flex-1 flex flex-col"
-            >
-                <div className="flex-1">
-                    {activeTab === "basic" && (
-                        <EventBasicInfo
-                            basicInfo={basicInfo}
-                            bannerFile={bannerFile}
-                            bannerUrl={bannerUrl}
-                            onBasicInfoChange={handleBasicInfoChange}
-                            onBannerChange={handleBannerChange}
-                            onImportComplete={handleImportComplete}
-                            errors={basicInfoErrors}
-                            isOnline={isOnline}
-                            onIsOnlineChange={setIsOnline}
-                            hasMultipleSegments={hasMultipleSegments}
-                            onHasMultipleSegmentsChange={setHasMultipleSegments}
-                            singleSegmentData={singleSegmentData}
-                            onSingleSegmentChange={handleSingleSegmentChange}
-                        />
-                    )}
-
-                    {activeTab === "categories" && (
-                        <EventCategories
-                            selectedCategories={selectedCategories}
-                            availableCategories={availableCategories}
-                            loadingCategories={loadingCategories}
-                            onAddCategorySelector={addCategorySelector}
-                            onRemoveCategorySelection={removeCategorySelection}
-                            onUpdateCategorySelection={updateCategorySelection}
-                        />
-                    )}
-
-                    {activeTab === "segments" && (
-                        <EventSegments
-                            segments={segments}
-                            availableCategories={availableCategories}
-                            onAddSegment={addSegment}
-                            onRemoveSegment={removeSegment}
-                            onUpdateSegment={updateSegment}
-                            errors={segmentErrors}
-                        />
-                    )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-between items-center mt-8 pt-8 border-t border-stroke-weak">
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        className="px-6 py-2 rounded-lg bg-zinc-800 text-text-weak font-medium"
-                        disabled={loading}
-                    >
-                        Reset
-                    </button>
-
-                    <div className="flex space-x-4">
-                        <button
-                            type="button"
-                            onClick={handleSaveDraft}
-                            disabled={loading}
-                            className="px-6 py-2 rounded-lg bg-zinc-800 text-text-weak font-medium"
+            {activeTab === "preview" ? (
+                // Render Preview
+                <div className="border border-zinc-800 rounded-xl overflow-hidden bg-zinc-950">
+                    <div className="bg-zinc-900 p-4 border-b border-zinc-800 flex justify-between items-center">
+                        <span className="text-yellow-500 font-bold">Preview Mode</span>
+                        <button 
+                            onClick={() => setActiveTab("basic")}
+                            className="text-sm text-accent hover:underline"
                         >
-                            {loading ? "Saving..." : "Save Draft"}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handlePublish}
-                            disabled={loading}
-                            className="px-6 py-2 rounded-lg bg-accent text-black font-medium"
-                        >
-                            {loading ? "Publishing..." : "Publish"}
+                            Back to Edit
                         </button>
                     </div>
+                    {/* We need to import EventDetailsView dynamically or at top */}
+                    {/* Since this file is tsx, we can assume it's imported at top. I will add import in next step. */}
+                    {/* For now assuming the import exists */}
+                    {/* Just mounting logic here */}
+                    <div className="transform scale-[0.9] origin-top h-full overflow-y-auto">
+                         <EventDetailsView 
+                            event={getPreviewEvent() as any} 
+                            isPreview={true} 
+                        />
+                    </div>
                 </div>
-            </form>
+            ) : (
+                <form
+                    onSubmit={(e) => e.preventDefault()}
+                    className="flex-1 flex flex-col"
+                >
+                    <div className="flex-1">
+                        {activeTab === "basic" && (
+                            <EventBasicInfo
+                                basicInfo={basicInfo}
+                                bannerFile={bannerFile}
+                                bannerUrl={bannerUrl}
+                                onBasicInfoChange={handleBasicInfoChange}
+                                onBannerChange={handleBannerChange}
+                                onImportComplete={handleImportComplete}
+                                errors={basicInfoErrors}
+                                isOnline={isOnline}
+                                onIsOnlineChange={setIsOnline}
+                                hasMultipleSegments={hasMultipleSegments}
+                                onHasMultipleSegmentsChange={setHasMultipleSegments}
+                                singleSegmentData={singleSegmentData}
+                                onSingleSegmentChange={handleSingleSegmentChange}
+                            />
+                        )}
+
+                        {activeTab === "categories" && (
+                            <EventCategories
+                                selectedCategories={selectedCategories}
+                                availableCategories={availableCategories}
+                                loadingCategories={loadingCategories}
+                                onAddCategorySelector={addCategorySelector}
+                                onRemoveCategorySelection={removeCategorySelection}
+                                onUpdateCategorySelection={updateCategorySelection}
+                            />
+                        )}
+
+                        {activeTab === "segments" && (
+                            <EventSegments
+                                segments={segments}
+                                availableCategories={availableCategories}
+                                onAddSegment={addSegment}
+                                onRemoveSegment={removeSegment}
+                                onUpdateSegment={updateSegment}
+                                errors={segmentErrors}
+                            />
+                        )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-between items-center mt-8 pt-8 border-t border-stroke-weak">
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="px-6 py-2 rounded-lg bg-zinc-800 text-text-weak font-medium"
+                            disabled={loading}
+                        >
+                            Reset
+                        </button>
+
+                        <div className="flex space-x-4">
+                            <button
+                                type="button"
+                                onClick={handleSaveDraft}
+                                disabled={loading}
+                                className="px-6 py-2 rounded-lg bg-zinc-800 text-text-weak font-medium"
+                            >
+                                {loading ? "Saving..." : "Save Draft"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handlePublish}
+                                disabled={loading}
+                                className="px-6 py-2 rounded-lg bg-accent text-black font-medium"
+                            >
+                                {loading ? "Publishing..." : "Publish"}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            )}
         </div>
     );
 }

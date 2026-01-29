@@ -81,7 +81,7 @@ export default function EventSegments({
                         availableCategories={availableCategories}
                         onUpdateSegment={onUpdateSegment}
                         onRemoveSegment={onRemoveSegment}
-                        isRemovable={segments.length > 1}
+                        isRemovable={true}
                         errors={errors[segment.id] || {}}
                     />
                 ))

@@ -171,9 +171,14 @@ function EventCard({ event }: EventCardProps) {
         });
     };
 
+    const isPublished = event.status === "published" || event.status === "completed";
+    const targetLink = isPublished 
+        ? `/organizers/event/manage/${event.id}` 
+        : `/organizers/event/edit/${event.id}`;
+
     return (
         <Link
-            to={`/organizers/event/edit/${event.id}`}
+            to={targetLink}
             className="block"
         >
             <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden hover:border-accent transition-colors">
