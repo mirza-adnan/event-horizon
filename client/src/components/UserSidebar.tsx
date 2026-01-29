@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaCompass, FaUsers, FaSignOutAlt, FaUser } from "react-icons/fa";
+import { FaCompass, FaUsers, FaSignOutAlt, FaUser, FaBell } from "react-icons/fa";
 import { cn } from "../utils/helpers";
 
 interface UserSidebarProps {
@@ -9,11 +10,32 @@ interface UserSidebarProps {
 
 export default function UserSidebar({ user, onLogout }: UserSidebarProps) {
     const location = useLocation();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+            try {
+                const res = await fetch("http://localhost:5050/api/notifications/unread-count", {
+                    credentials: "include"
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setUnreadCount(data.count);
+                }
+            } catch (error) {
+                console.error("Failed to fetch unread count:", error);
+            }
+        };
+
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
+        return () => clearInterval(interval);
+    }, []);
 
     const menuItems = [
         { icon: FaCompass, label: "Explore", path: "/explore" },
         { icon: FaUsers, label: "Teams", path: "/teams" },
-        // Add more items here as needed
+        { icon: FaBell, label: "Notifications", path: "/notifications", badge: unreadCount },
     ];
 
     return (
@@ -51,7 +73,17 @@ export default function UserSidebar({ user, onLogout }: UserSidebarProps) {
                                     isActive ? "text-black" : "text-zinc-500 group-hover:text-white"
                                 )}
                             />
-                            <span>{item.label}</span>
+                            <div className="flex-1 flex items-center justify-between">
+                                <span>{item.label}</span>
+                                {item.badge !== undefined && item.badge > 0 && (
+                                    <span className={cn(
+                                        "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                                        isActive ? "bg-black text-accent" : "bg-accent text-black"
+                                    )}>
+                                        {item.badge}
+                                    </span>
+                                )}
+                            </div>
                         </Link>
                     );
                 })}
