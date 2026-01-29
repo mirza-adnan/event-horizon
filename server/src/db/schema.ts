@@ -282,6 +282,7 @@ export const eventsRelations = relations(eventsTable, ({ one, many }) => ({
     eventCategories: many(eventCategoriesTable),
     segments: many(segmentsTable),
     registrations: many(registrationsTable),
+    announcements: many(announcementsTable),
 }));
 
 export const segmentsRelations = relations(segmentsTable, ({ one, many }) => ({
@@ -322,6 +323,7 @@ export const usersRelations = relations(usersTable, ({ many }) => ({
     teamMemberships: many(teamMembersTable),
     registrations: many(registrationsTable),
     teamInvites: many(teamInvitesTable), // Invites sent by user? Or received? Schema says invitedBy.
+    notifications: many(notificationsTable),
 }));
 
 export const categoriesRelations = relations(categoriesTable, ({ many }) => ({
@@ -385,4 +387,40 @@ export const externalEventsTable = pgTable("external_events", {
 
 export type ExternalEvent = InferSelectModel<typeof externalEventsTable>;
 export type NewExternalEvent = InferInsertModel<typeof externalEventsTable>;
+
+export const announcementsTable = pgTable("announcements", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+        .notNull()
+        .references(() => eventsTable.id, { onDelete: "cascade" }),
+    segmentId: uuid("segment_id").references(() => segmentsTable.id, {
+        onDelete: "cascade",
+    }), // Nullable for global announcements
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    imageUrl: text("image_url"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export const notificationsTable = pgTable("notifications", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+        .notNull()
+        .references(() => usersTable.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // 'announcement', 'invite', etc.
+    message: text("message").notNull(),
+    link: text("link"),
+    isRead: boolean("is_read").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export type Announcement = InferSelectModel<typeof announcementsTable>;
+export type NewAnnouncement = InferInsertModel<typeof announcementsTable>;
+
+export type Notification = InferSelectModel<typeof notificationsTable>;
+export type NewNotification = InferInsertModel<typeof notificationsTable>;
 
