@@ -19,8 +19,22 @@ export default function EventDetails() {
         fetchEventDetails();
         if (user) {
             fetchRegistrationStatus();
+            trackInterest();
         }
     }, [id, user]);
+
+    const trackInterest = async () => {
+        try {
+            await fetch(`http://localhost:5050/api/events/track-interest`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ eventId: id }),
+                credentials: "include"
+            });
+        } catch (err) {
+            console.error("Error tracking interest", err);
+        }
+    };
 
     const fetchEventDetails = async () => {
         try {

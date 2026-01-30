@@ -3,6 +3,7 @@ import ExternalEventCard from "../components/ExternalEventCard";
 import { fetchExternalEvents } from "../utils/api";
 import { FaCompass, FaSpinner, FaSearch } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { useUserAuth } from "../hooks/useUserAuth";
 
 interface ExternalEvent {
     id: string; // Added ID
@@ -25,6 +26,7 @@ interface PlatformEvent {
     city: string;
     country: string;
     isOnline: boolean;
+    categories: string[];
 }
 
 function Explore() {
@@ -36,6 +38,7 @@ function Explore() {
     const [searchQuery, setSearchQuery] = useState("");
     const [platformEvents, setPlatformEvents] = useState<PlatformEvent[]>([]);
     const [loadingPlatform, setLoadingPlatform] = useState(false);
+    const { isAuthenticated, user } = useUserAuth();
 
     useEffect(() => {
         const loadEvents = async () => {
@@ -62,7 +65,9 @@ function Explore() {
         try {
             // Parallel fetch for both platform and external events
             const [platformRes, externalData] = await Promise.all([
-                fetch(`http://localhost:5050/api/events/search?q=${encodeURIComponent(query)}&limit=10`),
+                fetch(`http://localhost:5050/api/events/search?q=${encodeURIComponent(query)}&limit=10`, {
+                    credentials: "include" // Include cookies for personalized sorting
+                }),
                 fetchExternalEvents(query)
             ]);
 
@@ -101,15 +106,26 @@ function Explore() {
         }
     };
 
-    const handleClick = async (id: string) => {
+    const handleClick = async (id: string, isPlatform: boolean = false) => {
         try {
-            await fetch(`http://localhost:5050/api/external-events/${id}/stats`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type: "click" }),
-            });
+            if (isPlatform && isAuthenticated) {
+                // Track interest for platform event
+                await fetch(`http://localhost:5050/api/events/track-interest`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ eventId: id }),
+                    credentials: "include"
+                });
+            } else if (!isPlatform) {
+                // Statistics for external events
+                await fetch(`http://localhost:5050/api/external-events/${id}/stats`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ type: "click", userId: user?.id }),
+                });
+            }
         } catch (e) {
-            // Ignore stats errors
+            // Ignore stats/interest errors
         }
     };
 
@@ -166,7 +182,12 @@ function Explore() {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {platformEvents.map((event) => (
-                                    <Link key={event.id} to={`/events/${event.id}`} className="group block bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-accent transition-colors">
+                                    <Link 
+                                        key={event.id} 
+                                        to={`/events/${event.id}`} 
+                                        onClick={() => handleClick(event.id, true)}
+                                        className="group block bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-accent transition-colors"
+                                    >
                                         <div className="aspect-video bg-zinc-800 relative overflow-hidden">
                                             {event.bannerUrl ? (
                                                 <img
@@ -181,6 +202,15 @@ function Explore() {
                                             )}
                                         </div>
                                         <div className="p-5">
+                                            {/* Categories */}
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                {event.categories && event.categories.map((cat, index) => (
+                                                    <span key={index} className="text-[10px] uppercase font-semibold tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
+                                                        {cat}
+                                                    </span>
+                                                ))}
+                                            </div>
+
                                             <div className="flex justify-between items-start mb-2">
                                                 <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-accent transition-colors">{event.title}</h3>
                                             </div>

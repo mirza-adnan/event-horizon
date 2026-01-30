@@ -12,7 +12,7 @@ interface Segment {
     endTime: string;
     isTeamSegment: boolean;
     registrationFee?: number;
-    // ...
+    categoryId?: string;
 }
 
 export interface Event {
@@ -30,6 +30,7 @@ export interface Event {
     organizer: {
         name: string;
     };
+    eventCategories?: string[];
 }
 
 interface EventDetailsViewProps {
@@ -79,6 +80,11 @@ export default function EventDetailsView({ event, user, registeredSegmentIds = [
                                 Preview Mode
                             </span>
                         )}
+                        {event.eventCategories && event.eventCategories.map((cat, index) => (
+                            <span key={index} className="px-3 py-1 bg-white/10 text-white rounded-full text-sm font-medium border border-white/10 backdrop-blur-sm">
+                                {cat}
+                            </span>
+                        ))}
                     </div>
                     <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 shadow-lg">{event.title}</h1>
                     <div className="flex flex-wrap gap-6 text-gray-300">
@@ -157,6 +163,11 @@ export default function EventDetailsView({ event, user, registeredSegmentIds = [
                                                              </span>
                                                          ) : (
                                                              <span className="text-gray-400 bg-gray-400/10 px-2 py-0.5 rounded">Free</span>
+                                                          )}
+                                                          {segment.categoryId && (
+                                                              <span className="text-accent bg-accent/10 px-2 py-0.5 rounded">
+                                                                  {segment.categoryId}
+                                                              </span>
                                                          )}
                                                      </div>
                                                  </div>
