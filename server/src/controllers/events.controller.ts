@@ -6,6 +6,7 @@ import {
     eventCategoriesTable,
     segmentsTable,
     orgsTable,
+    usersTable,
 } from "../db/schema";
 import { eq, and, or, desc } from "drizzle-orm";
 import axios from "axios";
@@ -246,7 +247,9 @@ export const createEvent = async (req: Request, res: Response) => {
             // but for consistency we can do it here. 
             // Note: If OpenAI fails, we might still want the event created, but for now let's await it.
             try {
-                let textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                const titlePart = (title + " ").repeat(2);
+                const categoryPart = (categoryNames.join(", ") + " ").repeat(3);
+                let textToEmbed = `${titlePart}\n${categoryPart}\n${description}`;
                 
                 if (segments.length > 0) {
                      segments.forEach((segment) => {
@@ -368,7 +371,7 @@ export const getEventById = async (req: Request, res: Response) => {
         // Fetch Categories
         const eventCategories = await db
             .select({
-                categoryName: eventCategoriesTable.categoryName,
+                name: eventCategoriesTable.categoryName,
             })
             .from(eventCategoriesTable)
             .where(eq(eventCategoriesTable.eventId, id));
@@ -383,7 +386,7 @@ export const getEventById = async (req: Request, res: Response) => {
         const fullEvent = {
             ...event,
             segments,
-            eventCategories: eventCategories,
+            eventCategories: eventCategories.map(c => c.name),
             organizer: organizer || { name: "Unknown" }
         };
 
@@ -536,7 +539,9 @@ export const updateEvent = async (req: Request, res: Response) => {
 
             // Update Embedding
             try {
-                let textToEmbed = `${title}\n${description}\n${categoryNames.join(", ")}`;
+                const titlePart = (title + " ").repeat(2);
+                const categoryPart = (categoryNames.join(", ") + " ").repeat(3);
+                let textToEmbed = `${titlePart}\n${categoryPart}\n${description}`;
                 
                 if (segments.length > 0) {
                      segments.forEach((segment) => {
@@ -884,30 +889,157 @@ export const searchEvents = async (req: Request, res: Response) => {
                 .limit(limitVal)
                 .offset(offset);
         } else {
-            // Default: List latest published events
-            results = await db
-                .select({
-                     id: eventsTable.id,
-                     title: eventsTable.title,
-                     description: eventsTable.description,
-                     startDate: eventsTable.startDate,
-                     endDate: eventsTable.endDate,
-                     bannerUrl: eventsTable.bannerUrl,
-                     city: eventsTable.city,
-                     country: eventsTable.country,
-                     isOnline: eventsTable.isOnline,
-                })
-                .from(eventsTable)
-                .where(eq(eventsTable.status, "published"))
-                .orderBy(desc(eventsTable.createdAt))
-                .limit(limitVal)
-                .offset(offset);
+            // Default: List latest published events, personalized if user embedding exists
+            const userId = (req as any).userId; // Check if user ID is available (optional auth)
+            let userEmbedding: number[] | null = null;
+
+            if (userId) {
+                const [user] = await db
+                    .select({ embedding: usersTable.embedding })
+                    .from(usersTable)
+                    .where(eq(usersTable.id, userId));
+                userEmbedding = user?.embedding || null;
+            }
+
+            if (userEmbedding) {
+                const similarity = sql<number>`1 - (${eventsTable.embedding} <=> ${JSON.stringify(userEmbedding)})`;
+                
+                results = await db
+                    .select({
+                         id: eventsTable.id,
+                         title: eventsTable.title,
+                         description: eventsTable.description,
+                         startDate: eventsTable.startDate,
+                         endDate: eventsTable.endDate,
+                         bannerUrl: eventsTable.bannerUrl,
+                         city: eventsTable.city,
+                         country: eventsTable.country,
+                         isOnline: eventsTable.isOnline,
+                         similarity: similarity
+                    })
+                    .from(eventsTable)
+                    .where(eq(eventsTable.status, "published"))
+                    .orderBy(sql`${similarity} DESC NULLS LAST`, desc(eventsTable.createdAt))
+                    .limit(limitVal)
+                    .offset(offset);
+            } else {
+                results = await db
+                    .select({
+                         id: eventsTable.id,
+                         title: eventsTable.title,
+                         description: eventsTable.description,
+                         startDate: eventsTable.startDate,
+                         endDate: eventsTable.endDate,
+                         bannerUrl: eventsTable.bannerUrl,
+                         city: eventsTable.city,
+                         country: eventsTable.country,
+                         isOnline: eventsTable.isOnline,
+                    })
+                    .from(eventsTable)
+                    .where(eq(eventsTable.status, "published"))
+                    .orderBy(desc(eventsTable.createdAt))
+                    .limit(limitVal)
+                    .offset(offset);
+            }
         }
 
-        res.json({ events: results });
+        // Fetch categories for each event
+        const eventsWithCategories = await Promise.all(results.map(async (event) => {
+            const categories = await db
+                .select({ name: eventCategoriesTable.categoryName })
+                .from(eventCategoriesTable)
+                .where(eq(eventCategoriesTable.eventId, event.id));
+            
+            return {
+                ...event,
+                categories: categories.map(c => c.name)
+            };
+        }));
+
+        res.json({ events: eventsWithCategories });
 
     } catch (error: any) {
         console.error("Search error:", error);
         res.status(500).json({ message: "Search failed", error: error.message });
     }
 }
+
+export const trackInterest = async (req: Request, res: Response) => {
+    try {
+        const { eventId, segmentId } = req.body;
+        const userId = (req as any).userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        let contentToEmbed = "";
+
+        if (segmentId) {
+            const [segment] = await db
+                .select()
+                .from(segmentsTable)
+                .where(eq(segmentsTable.id, segmentId));
+            if (segment) {
+                const titlePart = (segment.name + " ").repeat(2);
+                const categoryPart = segment.categoryId ? (segment.categoryId + " ").repeat(3) : "";
+                contentToEmbed = `${titlePart}\n${categoryPart}\n${segment.description}`;
+            }
+        } else if (eventId) {
+            const [event] = await db
+                .select()
+                .from(eventsTable)
+                .where(eq(eventsTable.id, eventId));
+            if (event) {
+                const titlePart = (event.title + " ").repeat(2);
+                
+                // Fetch categories
+                const categories = await db
+                    .select({ name: eventCategoriesTable.categoryName })
+                    .from(eventCategoriesTable)
+                    .where(eq(eventCategoriesTable.eventId, eventId));
+                
+                const categoryNames = categories.map(c => c.name).join(", ");
+                const categoryPart = (categoryNames + " ").repeat(3);
+                
+                contentToEmbed = `${titlePart}\n${categoryPart}\n${event.description}`;
+            }
+        }
+
+        if (!contentToEmbed) {
+            return res.status(400).json({ message: "Event or Segment not found" });
+        }
+
+        const interestEmbedding = await generateEmbedding(contentToEmbed);
+
+        const [user] = await db
+            .select({ embedding: usersTable.embedding })
+            .from(usersTable)
+            .where(eq(usersTable.id, userId));
+
+        let finalEmbedding: number[];
+
+        if (user?.embedding) {
+            // Weighted moving average: 0.7 * old + 0.3 * new
+            finalEmbedding = user.embedding.map((val, i) => (val * 0.7) + (interestEmbedding[i] * 0.3));
+            
+            // Normalize the vector
+            const magnitude = Math.sqrt(finalEmbedding.reduce((sum, val) => sum + val * val, 0));
+            if (magnitude > 0) {
+                finalEmbedding = finalEmbedding.map(val => val / magnitude);
+            }
+        } else {
+            finalEmbedding = interestEmbedding;
+        }
+
+        await db
+            .update(usersTable)
+            .set({ embedding: finalEmbedding })
+            .where(eq(usersTable.id, userId));
+
+        res.json({ message: "Interest tracked successfully" });
+    } catch (error: any) {
+        console.error("Track interest error:", error);
+        res.status(500).json({ message: "Failed to track interest", error: error.message });
+    }
+};

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import db from "../db";
-import { externalEventsTable } from "../db/schema";
+import { externalEventsTable, usersTable } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { scrapeEventsWithoutLogin, scrapeFacebookEvents } from "../utils/scraper";
 import CATEGORIES from "../utils/categories";
@@ -108,9 +108,9 @@ export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
                 .where(eq(externalEventsTable.slug, slug));
 
             if (existing.length === 0) {
-                const textToEmbed = `${event.title}\n${event.description || ""}\n${
-                    event.categories ? event.categories.join(", ") : ""
-                }`;
+                const titlePart = (event.title + " ").repeat(2);
+                const categoryPart = event.categories ? (event.categories.join(", ") + " ").repeat(3) : "";
+                const textToEmbed = `${titlePart}\n${categoryPart}\n${event.description || ""}`;
                 const embeddingVector = await generateEmbedding(textToEmbed);
 
                 await db.insert(externalEventsTable).values({
@@ -183,12 +183,50 @@ export const deleteExternalEvent = async (req: Request, res: Response) => {
 export const trackEventStats = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { type } = req.body; // 'click' or 'hover'
+        const { type, userId } = req.body; // 'click' or 'hover'
 
         if (type === 'click') {
             await db.execute(
                 `UPDATE external_events SET clicks = clicks + 1 WHERE id = '${id}'`
             );
+
+            // PERSONALIZATION: If userId is provided, update user interest embedding
+            if (userId) {
+                try {
+                    const [event] = await db
+                        .select()
+                        .from(externalEventsTable)
+                        .where(eq(externalEventsTable.id, id));
+                    
+                    if (event) {
+                        const titlePart = (event.title + " ").repeat(2);
+                        const categoryPart = event.categories ? (event.categories.join(", ") + " ").repeat(3) : "";
+                        const contentToEmbed = `${titlePart}\n${categoryPart}\n${event.description || ""}`;
+                        const interestEmbedding = await generateEmbedding(contentToEmbed);
+
+                        const [user] = await db
+                            .select({ embedding: usersTable.embedding })
+                            .from(usersTable)
+                            .where(eq(usersTable.id, userId));
+
+                        let finalEmbedding: number[];
+                        if (user?.embedding) {
+                            // Weighted moving average: 0.7 * old + 0.3 * new
+                            finalEmbedding = user.embedding.map((val: number, i: number) => (val * 0.7) + (interestEmbedding[i] * 0.3));
+                            const magnitude = Math.sqrt(finalEmbedding.reduce((sum, val) => sum + val * val, 0));
+                            if (magnitude > 0) {
+                                finalEmbedding = finalEmbedding.map(val => val / magnitude);
+                            }
+                        } else {
+                            finalEmbedding = interestEmbedding;
+                        }
+
+                        await db.update(usersTable).set({ embedding: finalEmbedding }).where(eq(usersTable.id, userId));
+                    }
+                } catch (interestError) {
+                    console.error("Failed to update user interest from external click:", interestError);
+                }
+            }
         } else if (type === 'hover') {
             await db.execute(
                 `UPDATE external_events SET hovers = hovers + 1 WHERE id = '${id}'`
