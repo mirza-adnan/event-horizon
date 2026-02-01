@@ -27,6 +27,7 @@ import AdminExternalEvents from "./components/Admin/AdminExternalEvents.tsx";
 import OrgProtectedRoute from "./components/OrgDashboard/OrgProtectedRoute.tsx";
 import EventManagement from "./pages/EventManagement.tsx";
 import Notifications from "./pages/Notifications.tsx";
+import OrganizerProfile from "./pages/OrganizerProfile.tsx";
 
 const router = createBrowserRouter([
     {
@@ -64,6 +65,10 @@ const router = createBrowserRouter([
             {
                 path: "/notifications",
                 element: <Notifications />,
+            },
+            {
+                path: "/organizer/:id",
+                element: <OrganizerProfile />,
             },
             {
                 path: "/organizers/registration",

@@ -19,6 +19,7 @@ import {
     primaryKey,
     json,
     customType,
+    real,
 } from "drizzle-orm/pg-core";
 
 const vector = customType<{ data: number[], driverData: string }>({
@@ -118,6 +119,8 @@ export const eventsTable = pgTable("events", {
         .defaultNow(),
     embedding: vector("embedding"),
     registrationFee: integer("registration_fee").default(0).notNull(),
+    latitude: real("latitude"),
+    longitude: real("longitude"),
 });
 
 export const segmentsTable = pgTable("segments", {
@@ -285,6 +288,11 @@ export const eventsRelations = relations(eventsTable, ({ one, many }) => ({
     announcements: many(announcementsTable),
 }));
 
+export const orgsRelations = relations(orgsTable, ({ many }) => ({
+    events: many(eventsTable),
+    subscribers: many(subscriptionsTable),
+}));
+
 export const segmentsRelations = relations(segmentsTable, ({ one, many }) => ({
     event: one(eventsTable, {
         fields: [segmentsTable.eventId],
@@ -324,6 +332,7 @@ export const usersRelations = relations(usersTable, ({ many }) => ({
     registrations: many(registrationsTable),
     teamInvites: many(teamInvitesTable), // Invites sent by user? Or received? Schema says invitedBy.
     notifications: many(notificationsTable),
+    subscriptions: many(subscriptionsTable),
 }));
 
 export const categoriesRelations = relations(categoriesTable, ({ many }) => ({
@@ -383,6 +392,8 @@ export const externalEventsTable = pgTable("external_events", {
         .notNull()
         .defaultNow(),
     embedding: vector("embedding"),
+    latitude: real("latitude"),
+    longitude: real("longitude"),
 });
 
 export type ExternalEvent = InferSelectModel<typeof externalEventsTable>;
@@ -423,4 +434,25 @@ export type NewAnnouncement = InferInsertModel<typeof announcementsTable>;
 
 export type Notification = InferSelectModel<typeof notificationsTable>;
 export type NewNotification = InferInsertModel<typeof notificationsTable>;
+
+export const subscriptionsTable = pgTable(
+    "subscriptions",
+    {
+        userId: uuid("user_id")
+            .notNull()
+            .references(() => usersTable.id, { onDelete: "cascade" }),
+        organizerId: uuid("organizer_id")
+            .notNull()
+            .references(() => orgsTable.id, { onDelete: "cascade" }),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => ({
+        pk: primaryKey({ columns: [table.userId, table.organizerId] }),
+    })
+);
+
+export type Subscription = InferSelectModel<typeof subscriptionsTable>;
+export type NewSubscription = InferInsertModel<typeof subscriptionsTable>;
 

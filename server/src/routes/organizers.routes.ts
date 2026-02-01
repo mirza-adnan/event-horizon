@@ -8,6 +8,13 @@ import {
 import { uploadProof } from "../middleware/upload";
 import { requireOrganizer } from "../middleware/requireOrganizer";
 import { requireAdmin } from "../middleware/requireAdmin";
+import { requireUser } from "../middleware/requireUser";
+import { 
+    getOrganizerProfile, 
+    subscribeToOrganizer, 
+    unsubscribeFromOrganizer, 
+    getSubscriptionStatus 
+} from "../controllers/organizer-profiles.controller";
 import { orgsTable } from "../db/schema";
 import { eq } from "drizzle-orm";
 import db from "../db";
@@ -92,5 +99,11 @@ organizerRouter.post("/logout", (req, res) => {
     res.clearCookie("org_token");
     res.json({ message: "Logged out successfully" });
 });
+
+// Public Profile & Subscriptions
+organizerRouter.get("/profile/:id", getOrganizerProfile);
+organizerRouter.post("/profile/:organizerId/subscribe", requireUser, subscribeToOrganizer);
+organizerRouter.post("/profile/:organizerId/unsubscribe", requireUser, unsubscribeFromOrganizer);
+organizerRouter.get("/profile/:organizerId/status", requireUser, getSubscriptionStatus);
 
 export default organizerRouter;

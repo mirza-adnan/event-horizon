@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import ExternalEventCard from "../components/ExternalEventCard";
 import { fetchExternalEvents } from "../utils/api";
-import { FaCompass, FaSpinner, FaSearch } from "react-icons/fa";
-import { Link } from "react-router-dom";
 import { useUserAuth } from "../hooks/useUserAuth";
+import { Link } from "react-router-dom";
+import { FaCompass, FaSpinner, FaSearch, FaMapMarkerAlt, FaTags, FaFilter } from "react-icons/fa";
+
+const CATEGORY_OPTIONS = [
+    "Tech", "Business", "Education", "Science", "Arts", "Sports", "Music", "Gaming", 
+    "Innovation", "Startup", "Workshop", "Competition", "Seminar", "Design", "Networking"
+];
 
 interface ExternalEvent {
     id: string; // Added ID
@@ -40,11 +45,32 @@ function Explore() {
     const [loadingPlatform, setLoadingPlatform] = useState(false);
     const { isAuthenticated, user } = useUserAuth();
 
+    // Filters & Geo
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [radius, setRadius] = useState<number>(50); // Default 50km
+    const [useNearby, setUseNearby] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
+
     useEffect(() => {
+        // Get user location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setUserLocation({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                }
+            );
+        }
+
         const loadEvents = async () => {
             try {
                 const data = await fetchExternalEvents();
-                // Check if data.events exists (backend structure might be { events: [...] })
                 setEvents(data.events || data);
             } catch (err) {
                 setError("Failed to load events. Please try again later.");
@@ -54,19 +80,34 @@ function Explore() {
         };
 
         loadEvents();
-       
-        // Initial load of platform events (no query = default list)
         handleSearch("");
     }, []);
+
+    // Effect to re-search when filters change
+    useEffect(() => {
+        if (!loading) handleSearch(searchQuery);
+    }, [selectedCategories, radius, userLocation, useNearby]);
 
     const handleSearch = async (query: string) => {
         setLoadingPlatform(true);
         setLoading(true); // Also load external events
         try {
+            const params = new URLSearchParams({
+                q: query,
+                limit: "10",
+            });
+
+            selectedCategories.forEach(cat => params.append("categories", cat));
+            if (useNearby && userLocation) {
+                params.append("lat", userLocation.lat.toString());
+                params.append("lng", userLocation.lng.toString());
+                params.append("radius", radius.toString());
+            }
+
             // Parallel fetch for both platform and external events
             const [platformRes, externalData] = await Promise.all([
-                fetch(`http://localhost:5050/api/events/search?q=${encodeURIComponent(query)}&limit=10`, {
-                    credentials: "include" // Include cookies for personalized sorting
+                fetch(`http://localhost:5050/api/events/search?${params.toString()}`, {
+                    credentials: "include"
                 }),
                 fetchExternalEvents(query)
             ]);
@@ -141,23 +182,120 @@ function Explore() {
                         Curated from across the web.
                     </p>
 
-                    {/* Search Bar */}
-                    <form onSubmit={onSearchSubmit} className="relative w-full max-w-xl">
-                        <input
-                            type="text"
-                            placeholder="Find events (e.g., 'React workshop', 'Hackathon next week')..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 rounded-full bg-zinc-900/80 border border-zinc-700 focus:border-accent text-white outline-none transition-colors"
-                        />
-                        <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <button
-                            type="submit"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-accent text-black px-4 py-1.5 rounded-full font-medium hover:bg-accent/90 transition-colors"
-                        >
-                            Search
-                        </button>
-                    </form>
+                    {/* Search Bar & Filter Toggle */}
+                    <div className="w-full max-w-xl space-y-4">
+                        <form onSubmit={onSearchSubmit} className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search for events, organizers, users..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 rounded-full bg-zinc-900/80 border border-zinc-700 focus:border-accent text-white outline-none transition-colors"
+                            />
+                            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className={`p-2 rounded-full transition-colors ${showFilters ? 'bg-accent text-black' : 'bg-zinc-800 text-gray-400 hover:text-white'}`}
+                                    title="Filters"
+                                >
+                                    <FaFilter size={14} />
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="bg-accent text-black px-4 py-1.5 rounded-full font-medium hover:bg-accent/90 transition-colors"
+                                >
+                                    Search
+                                </button>
+                            </div>
+                        </form>
+
+                        {/* Expandable Filters */}
+                        {showFilters && (
+                            <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 text-left animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {/* Category Multi-select */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-white font-semibold mb-2">
+                                            <FaTags className="text-accent" />
+                                            <span>Categories</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {CATEGORY_OPTIONS.map(cat => (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => {
+                                                        setSelectedCategories(prev => 
+                                                            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+                                                        );
+                                                    }}
+                                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                                                        selectedCategories.includes(cat)
+                                                            ? 'bg-accent text-black border-accent'
+                                                            : 'bg-zinc-800 text-gray-400 border-zinc-700 hover:border-gray-500 border'
+                                                    }`}
+                                                >
+                                                    {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Proximity Slider */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2 text-white font-semibold">
+                                                <FaMapMarkerAlt className="text-accent" />
+                                                <span>Search Nearby</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className={`text-xs ${useNearby ? 'text-accent' : 'text-gray-500'}`}>
+                                                    {useNearby ? 'Active' : 'Disabled'}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setUseNearby(!useNearby)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useNearby ? 'bg-accent' : 'bg-zinc-700'}`}
+                                                >
+                                                    <span
+                                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useNearby ? 'translate-x-6' : 'translate-x-1'}`}
+                                                    />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {useNearby && (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-gray-400">Radius</span>
+                                                    <span className="text-accent font-bold">{radius} km</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="500"
+                                                    value={radius}
+                                                    onChange={(e) => setRadius(parseInt(e.target.value))}
+                                                    className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-accent"
+                                                />
+                                                <div className="flex justify-between text-[10px] text-gray-500 font-medium">
+                                                    <span>1 km</span>
+                                                    <span>500 km</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                       
+                                        {!userLocation && (
+                                            <p className="text-[10px] text-yellow-500/80 italic">
+                                                * Geolocation access required for nearby search
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Two Column Layout: Main Content + Sidebar */}
