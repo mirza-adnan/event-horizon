@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import db from "../db";
 import { usersTable, registrationsTable, eventsTable } from "../db/schema";
-import { eq, and, gte, lt, desc, asc } from "drizzle-orm";
+import { eq, and, gte, lt, desc, asc, or, ilike } from "drizzle-orm";
 
 export const getUserProfile = async (req: Request, res: Response) => {
     try {
@@ -60,6 +60,38 @@ export const getUserProfile = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error("Error fetching user profile:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const searchUsers = async (req: Request, res: Response) => {
+    try {
+        const { q } = req.query;
+        if (!q || typeof q !== "string") {
+            return res.json({ users: [] });
+        }
+
+        const users = await db
+            .select({
+                id: usersTable.id,
+                firstName: usersTable.firstName,
+                lastName: usersTable.lastName,
+                avatarUrl: usersTable.avatarUrl,
+                email: usersTable.email,
+            })
+            .from(usersTable)
+            .where(
+                or(
+                    ilike(usersTable.firstName, `%${q}%`),
+                    ilike(usersTable.lastName, `%${q}%`),
+                    ilike(usersTable.email, `%${q}%`)
+                )
+            )
+            .limit(20);
+        console.log("users: ", users)
+        res.json({ users });
+    } catch (error) {
+        console.error("Search users error:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };

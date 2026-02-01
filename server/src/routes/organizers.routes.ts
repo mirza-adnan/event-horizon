@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
     organizerRegister,
     organizerLogin,
+    searchOrganizers,
     validateOrganizerBasic,
     verifyOrganizerEmail,
 } from "../controllers/organizer.controller";
@@ -51,6 +52,8 @@ organizerRouter.get("/pending", requireAdmin, async (req, res) => {
         res.status(500).json({ message: "Error fetching pending organizers" });
     }
 });
+
+organizerRouter.get("/search", searchOrganizers);
 
 organizerRouter.get("/:id", requireAdmin, async (req, res) => {
     try {
