@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { FaCalendarAlt, FaStar, FaUser, FaEnvelope, FaClock } from "react-icons/fa";
+import { FaCalendarAlt, FaStar, FaUser, FaEnvelope, FaClock, FaUserPlus } from "react-icons/fa";
+import { useUserAuth } from "../hooks/useUserAuth";
+import InviteToTeamModal from "../components/InviteToTeamModal";
 
 interface Event {
     id: string;
@@ -28,6 +30,8 @@ export default function UserProfile() {
         pastEvents: Event[];
     } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const { user: currentUser, isAuthenticated } = useUserAuth();
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -80,20 +84,33 @@ export default function UserProfile() {
                                 <FaUser />
                             )}
                         </div>
-                        <div className="flex flex-col">
-                            <h1 className="text-4xl font-bold text-white mb-2">
-                                {user.firstName} {user.lastName}
-                            </h1>
-                            <div className="flex items-center gap-4 text-zinc-400 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <FaEnvelope className="text-accent" />
-                                    <span>{user.email}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <FaClock className="text-accent" />
-                                    <span>Member since {new Date(user.createdAt).toLocaleDateString()}</span>
+                        <div className="flex-1 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+                            <div className="flex flex-col">
+                                <h1 className="text-4xl font-bold text-white mb-2">
+                                    {user.firstName} {user.lastName}
+                                </h1>
+                                <div className="flex items-center gap-4 text-zinc-400 text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <FaEnvelope className="text-accent" />
+                                        <span>{user.email}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <FaClock className="text-accent" />
+                                        <span>Member since {new Date(user.createdAt).toLocaleDateString()}</span>
+                                    </div>
                                 </div>
                             </div>
+
+                            {/* Invite Button */}
+                            {isAuthenticated && currentUser?.id !== user.id && (
+                                <button
+                                    onClick={() => setShowInviteModal(true)}
+                                    className="flex items-center gap-2 bg-accent text-black px-6 py-3 rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-accent/20"
+                                >
+                                    <FaUserPlus />
+                                    Invite to Team
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -179,6 +196,13 @@ export default function UserProfile() {
                     </div>
                 </div>
             </div>
+            {showInviteModal && (
+                <InviteToTeamModal 
+                    invitedUserId={user.id} 
+                    invitedUserName={`${user.firstName} ${user.lastName}`}
+                    onClose={() => setShowInviteModal(false)}
+                />
+            )}
         </div>
     );
 }

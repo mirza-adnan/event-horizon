@@ -14,8 +14,23 @@ interface Team {
     }
 }
 
+interface Invite {
+    id: string;
+    status: string;
+    createdAt: string;
+    team: {
+        id: string;
+        name: string;
+    };
+    inviter: {
+        firstName: string;
+        lastName: string;
+    };
+}
+
 export default function Teams() {
     const [teams, setTeams] = useState<Team[]>([]);
+    const [invites, setInvites] = useState<Invite[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     
@@ -28,6 +43,7 @@ export default function Teams() {
 
     useEffect(() => {
         fetchTeams();
+        fetchInvites();
     }, []);
 
     const fetchTeams = async () => {
@@ -43,6 +59,37 @@ export default function Teams() {
             console.error("Failed to fetch teams", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchInvites = async () => {
+        try {
+            const res = await fetch("http://localhost:5050/api/teams/invites", {
+                credentials: "include"
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setInvites(data.invites);
+            }
+        } catch (error) {
+            console.error("Failed to fetch invites", error);
+        }
+    };
+
+    const handleInviteResponse = async (inviteId: string, action: 'accept' | 'reject') => {
+        try {
+            const res = await fetch(`http://localhost:5050/api/teams/invites/${inviteId}/respond`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action }),
+                credentials: "include"
+            });
+            if (res.ok) {
+                fetchInvites();
+                if (action === 'accept') fetchTeams();
+            }
+        } catch (error) {
+            console.error("Failed to respond to invite", error);
         }
     };
 
@@ -104,6 +151,48 @@ export default function Teams() {
                     <span>Create Team</span>
                 </button>
             </div>
+
+            {/* Invitations Section */}
+            {invites.length > 0 && (
+                <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                        <FaUserPlus className="text-accent" />
+                        Pending Invitations
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {invites.map((invite) => (
+                            <div 
+                                key={invite.id}
+                                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl relative overflow-hidden group"
+                            >
+                                <div className="absolute top-0 right-0 p-3">
+                                    <div className="bg-accent/10 text-accent text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
+                                        Invitation
+                                    </div>
+                                </div>
+                                <h3 className="text-lg font-bold text-white mb-1 tracking-tight">{invite.team.name}</h3>
+                                <p className="text-zinc-500 text-sm mb-6">
+                                    Invited by <span className="text-zinc-300 font-medium">{invite.inviter.firstName} {invite.inviter.lastName}</span>
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => handleInviteResponse(invite.id, 'accept')}
+                                        className="flex-1 bg-accent text-black font-bold py-2 rounded-xl text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-accent/10"
+                                    >
+                                        Accept
+                                    </button>
+                                    <button
+                                        onClick={() => handleInviteResponse(invite.id, 'reject')}
+                                        className="flex-1 bg-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-sm hover:bg-zinc-700 hover:text-white transition-all"
+                                    >
+                                        Decline
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div className="flex justify-center py-20">

@@ -103,7 +103,6 @@ function Explore() {
         setLoadingOther(true);
         try {
             const endpoint = activeTab === "organizers" ? "organizers" : "users";
-            console.log("endpoint:", endpoint);
             const res = await fetch(`http://localhost:5050/api/${endpoint}/search?q=${query}`, {
                 credentials: "include"
             });
