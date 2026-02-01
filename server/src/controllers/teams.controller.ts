@@ -284,3 +284,192 @@ export const sendTeamChat = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Failed to send message" });
     }
 };
+
+// Invite a user to an existing team
+export const inviteMember = async (req: Request, res: Response) => {
+    try {
+        const leaderId = (req as any).userId;
+        const { teamId } = req.params;
+        const { userId: invitedUserId } = req.body;
+
+        if (!invitedUserId) {
+            return res.status(400).json({ message: "Invited user ID is required" });
+        }
+
+        // 1. Verify requester is leader of the team
+        const [team] = await db
+            .select()
+            .from(teamsTable)
+            .where(and(eq(teamsTable.id, teamId), eq(teamsTable.leaderId, leaderId)));
+        
+        if (!team) {
+            return res.status(403).json({ message: "Only the team leader can invite members" });
+        }
+
+        // 2. Fetch invited user info
+        const [invitedUser] = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.id, invitedUserId));
+        
+        if (!invitedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // 3. Check if already a member
+        const [existingMember] = await db
+            .select()
+            .from(teamMembersTable)
+            .where(and(eq(teamMembersTable.teamId, teamId), eq(teamMembersTable.userId, invitedUserId)));
+        
+        if (existingMember) {
+            return res.status(400).json({ message: "User is already a member of this team" });
+        }
+
+        // 4. Check if pending invite exists
+        const [existingInvite] = await db
+            .select()
+            .from(teamInvitesTable)
+            .where(and(
+                eq(teamInvitesTable.teamId, teamId),
+                eq(teamInvitesTable.email, invitedUser.email),
+                eq(teamInvitesTable.status, "pending")
+            ));
+        
+        if (existingInvite) {
+            return res.status(400).json({ message: "A pending invite already exists for this user" });
+        }
+
+        // 5. Create Invite & Notification
+        await db.transaction(async (tx) => {
+            await tx.insert(teamInvitesTable).values({
+                teamId,
+                email: invitedUser.email,
+                invitedBy: leaderId,
+                status: "pending"
+            });
+
+            await tx.insert(notificationsTable).values({
+                userId: invitedUserId,
+                type: "invite",
+                message: `You have been invited to join team "${team.name}"`,
+                link: "/teams",
+                isRead: false
+            } as NewNotification);
+        });
+
+        res.json({ message: "Invite sent successfully" });
+    } catch (error) {
+        console.error("Invite member error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// Get pending invites for current user
+export const getMyInvites = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        
+        // Use user email to find invites
+        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const invites = await db
+            .select({
+                id: teamInvitesTable.id,
+                status: teamInvitesTable.status,
+                createdAt: teamInvitesTable.createdAt,
+                team: {
+                    id: teamsTable.id,
+                    name: teamsTable.name,
+                },
+                inviter: {
+                    firstName: usersTable.firstName,
+                    lastName: usersTable.lastName,
+                }
+            })
+            .from(teamInvitesTable)
+            .innerJoin(teamsTable, eq(teamInvitesTable.teamId, teamsTable.id))
+            .innerJoin(usersTable, eq(teamInvitesTable.invitedBy, usersTable.id))
+            .where(and(
+                eq(teamInvitesTable.email, user.email),
+                eq(teamInvitesTable.status, "pending")
+            ));
+
+        res.json({ invites });
+    } catch (error) {
+        console.error("Get invites error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// Accept or Reject invite
+export const respondToInvite = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { inviteId } = req.params;
+        const { action } = req.body; // 'accept' or 'reject'
+
+        if (!['accept', 'reject'].includes(action)) {
+            return res.status(400).json({ message: "Invalid action" });
+        }
+
+        const [invite] = await db
+            .select()
+            .from(teamInvitesTable)
+            .where(eq(teamInvitesTable.id, inviteId));
+
+        if (!invite) return res.status(404).json({ message: "Invite not found" });
+
+        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+        if (!user || user.email !== invite.email) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        if (invite.status !== 'pending') {
+            return res.status(400).json({ message: "Invite already processed" });
+        }
+
+        await db.transaction(async (tx) => {
+            // Update invite status
+            await tx
+                .update(teamInvitesTable)
+                .set({ status: action === 'accept' ? 'accepted' : 'rejected' })
+                .where(eq(teamInvitesTable.id, inviteId));
+
+            const [team] = await tx.select().from(teamsTable).where(eq(teamsTable.id, invite.teamId));
+
+            if (action === 'accept') {
+                // Add to members
+                await tx.insert(teamMembersTable).values({
+                    teamId: invite.teamId,
+                    userId: userId,
+                    role: "member"
+                });
+
+                // Notify Leader
+                await tx.insert(notificationsTable).values({
+                    userId: invite.invitedBy,
+                    type: "announcement",
+                    message: `${user.firstName} accepted your invite to join "${team?.name}"`,
+                    link: `/teams/${invite.teamId}`,
+                    isRead: false
+                } as NewNotification);
+            } else {
+                // Notify Leader of rejection
+                await tx.insert(notificationsTable).values({
+                    userId: invite.invitedBy,
+                    type: "announcement",
+                    message: `${user.firstName} declined your invite to join "${team?.name}"`,
+                    link: "/teams",
+                    isRead: false
+                } as NewNotification);
+            }
+        });
+
+        res.json({ message: `Invite ${action}ed successfully` });
+    } catch (error) {
+        console.error("Respond to invite error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
