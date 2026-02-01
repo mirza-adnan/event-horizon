@@ -51,6 +51,11 @@ function Explore() {
     const [radius, setRadius] = useState<number>(50); // Default 50km
     const [useNearby, setUseNearby] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+    const [activeTab, setActiveTab] = useState<"events" | "organizers" | "users">("events");
+    const [organizers, setOrganizers] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
+    const [loadingOther, setLoadingOther] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
 
     useEffect(() => {
         // Get user location
@@ -85,8 +90,34 @@ function Explore() {
 
     // Effect to re-search when filters change
     useEffect(() => {
-        if (!loading) handleSearch(searchQuery);
-    }, [selectedCategories, radius, userLocation, useNearby]);
+        if (!loading && activeTab === "events") handleSearch(searchQuery);
+        else if (activeTab !== "events") handleOtherSearch(searchQuery);
+    }, [selectedCategories, radius, userLocation, useNearby, activeTab]);
+
+    const handleOtherSearch = async (query: string) => {
+        if (!query) {
+            setOrganizers([]);
+            setUsers([]);
+            return;
+        }
+        setLoadingOther(true);
+        try {
+            const endpoint = activeTab === "organizers" ? "organizers" : "users";
+            console.log("endpoint:", endpoint);
+            const res = await fetch(`http://localhost:5050/api/${endpoint}/search?q=${query}`, {
+                credentials: "include"
+            });
+            const data = await res.json();
+            if (activeTab === "organizers") setOrganizers(data.organizers || []);
+            else setUsers(data.users || []);
+        } catch (e) {
+            console.error("Other search failed", e);
+            setOrganizers([]);
+            setUsers([]);
+        } finally {
+            setLoadingOther(false);
+        }
+    };
 
     const handleSearch = async (query: string) => {
         setLoadingPlatform(true);
@@ -114,16 +145,17 @@ function Explore() {
 
             const platformData = await platformRes.json();
             if (platformRes.ok) {
-                setPlatformEvents(platformData.events);
+                setPlatformEvents(platformData.events || []);
             }
            
             // Handle external events response
-            // The API returns { events: [...] }
-            setEvents(externalData.events || externalData);
+            setEvents(externalData.events || externalData || []);
 
         } catch (e) {
             console.error("Search failed", e);
             setError("Search failed. Please try again.");
+            setPlatformEvents([]);
+            setEvents([]);
         } finally {
             setLoadingPlatform(false);
             setLoading(false);
@@ -132,7 +164,12 @@ function Explore() {
 
     const onSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        handleSearch(searchQuery);
+        setHasSearched(true);
+        if (activeTab === "events") {
+            handleSearch(searchQuery);
+        } else {
+            handleOtherSearch(searchQuery);
+        }
     };
 
     const handleHover = async (id: string) => {
@@ -197,7 +234,7 @@ function Explore() {
                                 <button
                                     type="button"
                                     onClick={() => setShowFilters(!showFilters)}
-                                    className={`p-2 rounded-full transition-colors ${showFilters ? 'bg-accent text-black' : 'bg-zinc-800 text-gray-400 hover:text-white'}`}
+                                    className={`p-2 rounded-full transition-colors ${showFilters ? 'bg-accent text-black' : 'bg-zinc-800 text-gray-400 hover:text-white'} ${activeTab !== 'events' ? 'hidden' : ''}`}
                                     title="Filters"
                                 >
                                     <FaFilter size={14} />
@@ -210,6 +247,25 @@ function Explore() {
                                 </button>
                             </div>
                         </form>
+
+                        {/* Search Tabs */}
+                        {hasSearched && (
+                            <div className="flex justify-center gap-4 mt-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                                {["events", "organizers", "users"].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab as any)}
+                                        className={`px-6 py-2 rounded-full text-sm font-bold capitalize transition-all ${
+                                            activeTab === tab 
+                                                ? 'bg-accent text-black shadow-lg shadow-accent/20' 
+                                                : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800'
+                                        }`}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         {/* Expandable Filters */}
                         {showFilters && (
@@ -298,114 +354,172 @@ function Explore() {
                     </div>
                 </div>
 
-                {/* Two Column Layout: Main Content + Sidebar */}
-                <div className="flex gap-8">
-                    {/* Main Content - Platform Events */}
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-2xl font-bold text-white border-l-4 border-accent pl-3">
-                                Platform Events
-                            </h2>
-                        </div>
-
-                        {loadingPlatform ? (
-                            <div className="flex flex-col items-center justify-center py-10">
-                                <FaSpinner className="animate-spin text-accent text-3xl mb-4" />
-                                <p className="text-gray-400">Loading platform events...</p>
-                            </div>
-                        ) : platformEvents.length === 0 ? (
-                            <div className="text-center py-12 bg-zinc-900/50 rounded-xl border border-zinc-800">
-                                <p className="text-gray-400">No events found matching your search.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {platformEvents.map((event) => (
-                                    <Link 
-                                        key={event.id} 
-                                        to={`/events/${event.id}`} 
-                                        onClick={() => handleClick(event.id, true)}
-                                        className="group block bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-accent transition-colors"
-                                    >
-                                        <div className="aspect-video bg-zinc-800 relative overflow-hidden">
-                                            {event.bannerUrl ? (
-                                                <img
-                                                    src={`http://localhost:5050${event.bannerUrl}`}
-                                                    alt={event.title}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-600">
-                                                    No Image
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="p-5">
-                                            {/* Categories */}
-                                            <div className="flex flex-wrap gap-2 mb-3">
-                                                {event.categories && event.categories.map((cat, index) => (
-                                                    <span key={index} className="text-[10px] uppercase font-semibold tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-                                                        {cat}
-                                                    </span>
-                                                ))}
-                                            </div>
-
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-accent transition-colors">{event.title}</h3>
-                                            </div>
-                                            <p className="text-zinc-400 text-sm mb-4 line-clamp-2">{event.description}</p>
-                                           
-                                            <div className="flex items-center gap-4 text-sm text-zinc-500">
-                                                <span>{new Date(event.startDate).toLocaleDateString()}</span>
-                                                <span>•</span>
-                                                <span>{event.isOnline ? "Online" : event.city}</span>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Right Sidebar - External Events */}
-                    <div className="w-80 flex-shrink-0">
-                        <div className="sticky top-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-white border-l-4 border-accent pl-3">
-                                    External Events
+                {/* Content Sections */}
+                {(!hasSearched || activeTab === "events") ? (
+                    <div className="flex gap-8">
+                        {/* Main Content - Platform Events */}
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-2xl font-bold text-white border-l-4 border-accent pl-3">
+                                    Platform Events
                                 </h2>
                             </div>
 
-                            {loading ? (
+                            {loadingPlatform ? (
                                 <div className="flex flex-col items-center justify-center py-10">
                                     <FaSpinner className="animate-spin text-accent text-3xl mb-4" />
-                                    <p className="text-gray-400 text-sm">Loading...</p>
+                                    <p className="text-gray-400">Loading platform events...</p>
                                 </div>
-                            ) : error ? (
-                                <div className="text-center py-10 bg-red-900/10 rounded-xl border border-red-900/50">
-                                    <p className="text-red-400 text-sm mb-2">Something went wrong</p>
-                                    <p className="text-gray-500 text-xs">{error}</p>
-                                </div>
-                            ) : events.length === 0 ? (
-                                <div className="text-center py-10 bg-zinc-900/50 rounded-xl border border-zinc-800">
-                                    <FaCompass className="text-4xl text-gray-700 mx-auto mb-3" />
-                                    <p className="text-gray-400 text-sm">No external events found.</p>
+                            ) : platformEvents.length === 0 ? (
+                                <div className="text-center py-12 bg-zinc-900/50 rounded-xl border border-zinc-800">
+                                    <p className="text-gray-400">No events found matching your search.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-                                    {events.map((event) => (
-                                        <div
-                                            key={event.id}
-                                            onMouseEnter={() => handleHover(event.id)}
-                                            onClick={() => handleClick(event.id)}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {platformEvents.map((event) => (
+                                        <Link 
+                                            key={event.id} 
+                                            to={`/events/${event.id}`} 
+                                            onClick={() => handleClick(event.id, true)}
+                                            className="group block bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-accent transition-colors shadow-lg hover:shadow-accent/5"
                                         >
-                                            <ExternalEventCard {...event} />
-                                        </div>
+                                            <div className="aspect-video bg-zinc-800 relative overflow-hidden">
+                                                {event.bannerUrl ? (
+                                                    <img
+                                                        src={`http://localhost:5050${event.bannerUrl}`}
+                                                        alt={event.title}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-600">
+                                                        No Image
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="p-5">
+                                                {/* Categories */}
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    {event.categories && event.categories.map((cat, index) => (
+                                                        <span key={index} className="text-[10px] uppercase font-semibold tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
+                                                            {cat}
+                                                        </span>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-accent transition-colors">{event.title}</h3>
+                                                </div>
+                                                <p className="text-zinc-400 text-sm mb-4 line-clamp-2">{event.description}</p>
+                                            
+                                                <div className="flex items-center gap-4 text-sm text-zinc-500">
+                                                    <span>{new Date(event.startDate).toLocaleDateString()}</span>
+                                                    <span>•</span>
+                                                    <span>{event.isOnline ? "Online" : event.city}</span>
+                                                </div>
+                                            </div>
+                                        </Link>
                                     ))}
                                 </div>
                             )}
                         </div>
+
+                        {/* Right Sidebar - External Events */}
+                        <div className="w-80 flex-shrink-0">
+                            <div className="sticky top-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-xl font-bold text-white border-l-4 border-accent pl-3">
+                                        External Events
+                                    </h2>
+                                </div>
+
+                                {loading ? (
+                                    <div className="flex flex-col items-center justify-center py-10">
+                                        <FaSpinner className="animate-spin text-accent text-3xl mb-4" />
+                                        <p className="text-gray-400 text-sm">Loading...</p>
+                                    </div>
+                                ) : error ? (
+                                    <div className="text-center py-10 bg-red-900/10 rounded-xl border border-red-900/50">
+                                        <p className="text-red-400 text-sm mb-2">Something went wrong</p>
+                                        <p className="text-gray-500 text-xs">{error}</p>
+                                    </div>
+                                ) : events.length === 0 ? (
+                                    <div className="text-center py-10 bg-zinc-900/50 rounded-xl border border-zinc-800">
+                                        <FaCompass className="text-4xl text-gray-700 mx-auto mb-3" />
+                                        <p className="text-gray-400 text-sm">No external events found.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+                                        {events.map((event) => (
+                                            <div
+                                                key={event.id}
+                                                onMouseEnter={() => handleHover(event.id)}
+                                                onClick={() => handleClick(event.id)}
+                                            >
+                                                <ExternalEventCard {...event} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                </div>
+                ) : activeTab === "organizers" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {loadingOther ? (
+                            <div className="col-span-full flex flex-col items-center py-20">
+                                <FaSpinner className="animate-spin text-accent text-3xl mb-4" />
+                            </div>
+                        ) : organizers.length === 0 ? (
+                            <div className="col-span-full text-center py-20 text-gray-500">
+                                No organizers found matching "{searchQuery}"
+                            </div>
+                        ) : (
+                            organizers.map(org => (
+                                <Link 
+                                    key={org.id} 
+                                    to={`/organizer/${org.id}`}
+                                    className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-accent transition-all group shadow-lg hover:shadow-accent/5"
+                                >
+                                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-accent">{org.name}</h3>
+                                    <p className="text-zinc-500 text-sm line-clamp-3 mb-4">{org.description || "No description provided."}</p>
+                                    <div className="text-xs text-zinc-600">
+                                        {org.city}, {org.country}
+                                    </div>
+                                </Link>
+                            ))
+                        )}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {loadingOther ? (
+                            <div className="col-span-full flex flex-col items-center py-20">
+                                <FaSpinner className="animate-spin text-accent text-3xl mb-4" />
+                            </div>
+                        ) : users.length === 0 ? (
+                            <div className="col-span-full text-center py-20 text-gray-500">
+                                No users found matching "{searchQuery}"
+                            </div>
+                        ) : (
+                            users.map(u => (
+                                <Link 
+                                    key={u.id} 
+                                    to={`/user/${u.id}`}
+                                    className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col items-center text-center hover:border-accent transition-all group shadow-lg hover:shadow-accent/5"
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4 text-2xl font-bold text-zinc-600 overflow-hidden border-2 border-zinc-700">
+                                        {u.avatarUrl ? (
+                                            <img src={u.avatarUrl} alt={u.firstName} className="w-full h-full object-cover" />
+                                        ) : (
+                                            u.firstName.charAt(0)
+                                        )}
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white group-hover:text-accent">{u.firstName} {u.lastName}</h3>
+                                    <p className="text-zinc-500 text-xs mt-1">{u.email}</p>
+                                </Link>
+                            ))
+                        )}
+                    </div>
+                )}
             </main>
         </div>
     );
