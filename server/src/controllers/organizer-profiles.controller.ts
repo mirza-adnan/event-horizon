@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import db from "../db";
 import { orgsTable, eventsTable, subscriptionsTable, notificationsTable, usersTable } from "../db/schema";
-import { eq, and, sql, desc, asc, gt, lt, lte, gte } from "drizzle-orm";
+import { eq, and, sql, desc, asc, gt, lt, lte, gte, or } from "drizzle-orm";
 
 export const getOrganizerProfile = async (req: Request, res: Response) => {
     try {

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { eq, or } from "drizzle-orm";
+import { eq, or, ilike, and } from "drizzle-orm";
 import db from "../db";
 import { orgsTable } from "../db/schema";
 import fs from "fs";
@@ -277,5 +277,39 @@ export const verifyOrganizerEmail = async (req: Request, res: Response) => {
         res.status(500).json({
             message: "Internal server error",
         });
+    }
+};
+
+export const searchOrganizers = async (req: Request, res: Response) => {
+    console.log("searchOrganizers");
+    try {
+        const { q } = req.query;
+        if (!q || typeof q !== "string") {
+            return res.json({ organizers: [] });
+        }
+
+        const organizers = await db
+            .select({
+                id: orgsTable.id,
+                name: orgsTable.name,
+                description: orgsTable.description,
+                city: orgsTable.city,
+                country: orgsTable.country,
+            })
+            .from(orgsTable)
+            .where(
+                or(
+                    ilike(orgsTable.name, `%${q}%`),
+                    ilike(orgsTable.description, `%${q}%`)
+                )
+            )
+            .limit(20);
+
+        console.log("organizers:", organizers);
+
+        res.json({ organizers });
+    } catch (error) {
+        console.error("Search organizers error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
