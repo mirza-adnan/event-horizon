@@ -7,8 +7,10 @@ import {
     segmentsTable,
     orgsTable,
     usersTable,
+    notificationsTable,
+    subscriptionsTable,
 } from "../db/schema";
-import { eq, and, or, desc } from "drizzle-orm";
+import { eq, and, or, desc, asc } from "drizzle-orm";
 import axios from "axios";
 import { Groq } from "groq-sdk";
 import * as cheerio from "cheerio";
@@ -32,6 +34,8 @@ export const createEvent = async (req: Request, res: Response) => {
             status = "draft",
             isOnline = false,
             hasMultipleSegments = true,
+            latitude,
+            longitude,
         } = req.body;
 
         // Handle categoryNames - it can come as a string, array, or multiple fields
@@ -239,6 +243,8 @@ export const createEvent = async (req: Request, res: Response) => {
                     isOnline: String(isOnline) === "true",
                     hasMultipleSegments: String(hasMultipleSegments) === "true",
                     organizerId,
+                    latitude: latitude ? parseFloat(latitude) : null,
+                    longitude: longitude ? parseFloat(longitude) : null,
                 })
                 .returning();
 
@@ -266,9 +272,38 @@ export const createEvent = async (req: Request, res: Response) => {
                     .update(eventsTable)
                     .set({ embedding: embeddingVector })
                     .where(eq(eventsTable.id, newEvent.id));
+
+                // Notify users with matching interests
+                const similarity = sql<number>`1 - (${usersTable.embedding} <=> ${JSON.stringify(embeddingVector)})`;
+                const matchingUsers = await tx
+                    .select({ id: usersTable.id })
+                    .from(usersTable)
+                    .where(sql`${similarity} > 0.5`);
+
+                // Fetch organizer subscribers
+                const subscribers = await tx
+                    .select({ id: subscriptionsTable.userId })
+                    .from(subscriptionsTable)
+                    .where(eq(subscriptionsTable.organizerId, organizerId));
+
+                // Combine and deduplicate user IDs
+                const userIdsToNotify = new Set([
+                    ...matchingUsers.map((u) => u.id),
+                    ...subscribers.map((s) => s.id),
+                ]);
+
+                if (userIdsToNotify.size > 0) {
+                    const notifications = Array.from(userIdsToNotify).map((userId) => ({
+                        userId,
+                        type: "announcement",
+                        message: `New event matches your interests or a subscription: ${title}`,
+                        link: `/events/${newEvent.id}`,
+                    }));
+                    await tx.insert(notificationsTable).values(notifications);
+                }
             } catch (embedError) {
-                console.error("Failed to generate embedding for new event:", embedError);
-                // Proceed without embedding, can be backfilled later
+                console.error("Failed to generate embedding or send notifications:", embedError);
+                // Proceed without embedding/notifications, can be backfilled later
             }
 
             if (categoryNames.length > 0) {
@@ -376,9 +411,12 @@ export const getEventById = async (req: Request, res: Response) => {
             .from(eventCategoriesTable)
             .where(eq(eventCategoriesTable.eventId, id));
             
-        // Fetch Organizer Name
+        // Fetch Organizer Name and ID
         const [organizer] = await db
-             .select({ name: orgsTable.name })
+             .select({ 
+                 id: orgsTable.id,
+                 name: orgsTable.name 
+             })
              .from(orgsTable)
              .where(eq(orgsTable.id, event.organizerId));
 
@@ -421,6 +459,8 @@ export const updateEvent = async (req: Request, res: Response) => {
             status,
             isOnline,
             hasMultipleSegments,
+            latitude,
+            longitude,
         } = req.body;
 
          // Handle banner
@@ -504,6 +544,8 @@ export const updateEvent = async (req: Request, res: Response) => {
                 bannerUrl,
                 isOnline: String(isOnline) === "true",
                 hasMultipleSegments: String(hasMultipleSegments) === "true",
+                latitude: latitude !== undefined ? (latitude ? parseFloat(latitude) : null) : existingEvent.latitude,
+                longitude: longitude !== undefined ? (longitude ? parseFloat(longitude) : null) : existingEvent.longitude,
                 updatedAt: new Date()
             }).where(eq(eventsTable.id, id));
 
@@ -855,93 +897,111 @@ export const scrapeExternalEvents = async (req: Request, res: Response) => {
 
 export const searchEvents = async (req: Request, res: Response) => {
     try {
-        const { q, page = 1, limit = 10 } = req.query;
+        const { q, page = 1, limit = 10, categories, radius, lat, lng } = req.query;
         const offset = (Number(page) - 1) * Number(limit);
         const limitVal = Number(limit);
+        const userLat = lat ? parseFloat(lat as string) : null;
+        const userLng = lng ? parseFloat(lng as string) : null;
+        const searchRadius = radius ? parseFloat(radius as string) : null;
 
-        let results;
+        let categoryNames: string[] = [];
+        if (categories) {
+            if (Array.isArray(categories)) categoryNames = categories as string[];
+            else categoryNames = [categories as string];
+        }
 
+        // Haversine formula for distance in KM
+        const distanceExpr = userLat && userLng
+            ? sql<number>`6371 * acos(cos(radians(${userLat})) * cos(radians(${eventsTable.latitude})) * cos(radians(${eventsTable.longitude}) - radians(${userLng})) + sin(radians(${userLat})) * sin(radians(${eventsTable.latitude})))`
+            : null;
+
+        // 1. Text Search / Interest Embedding
+        let similarityExpr;
         if (q && typeof q === "string" && q.trim().length > 0) {
-             // Semantic Search
-             const queryEmbedding = await generateEmbedding(q);
-             // Use distance operator <=> (cosine distance)
-             const similarity = sql<number>`1 - (${eventsTable.embedding} <=> ${JSON.stringify(queryEmbedding)})`;
-
-             results = await db
-                .select({
-                    id: eventsTable.id,
-                    title: eventsTable.title,
-                    description: eventsTable.description,
-                    startDate: eventsTable.startDate,
-                    endDate: eventsTable.endDate,
-                    bannerUrl: eventsTable.bannerUrl,
-                    city: eventsTable.city,
-                    country: eventsTable.country,
-                    isOnline: eventsTable.isOnline,
-                    similarity: similarity
-                })
-                .from(eventsTable)
-                .where(and(
-                    eq(eventsTable.status, "published"),
-                    sql`${similarity} > 0.25` // Threshold for relevance
-                ))
-                .orderBy(sql`${similarity} DESC`)
-                .limit(limitVal)
-                .offset(offset);
+            const queryEmbedding = await generateEmbedding(q);
+            similarityExpr = sql<number>`1 - (${eventsTable.embedding} <=> ${JSON.stringify(queryEmbedding)})`;
         } else {
-            // Default: List latest published events, personalized if user embedding exists
-            const userId = (req as any).userId; // Check if user ID is available (optional auth)
+            const userId = (req as any).userId;
             let userEmbedding: number[] | null = null;
-
             if (userId) {
-                const [user] = await db
-                    .select({ embedding: usersTable.embedding })
-                    .from(usersTable)
-                    .where(eq(usersTable.id, userId));
+                const [user] = await db.select({ embedding: usersTable.embedding }).from(usersTable).where(eq(usersTable.id, userId));
                 userEmbedding = user?.embedding || null;
             }
-
             if (userEmbedding) {
-                const similarity = sql<number>`1 - (${eventsTable.embedding} <=> ${JSON.stringify(userEmbedding)})`;
-                
-                results = await db
-                    .select({
-                         id: eventsTable.id,
-                         title: eventsTable.title,
-                         description: eventsTable.description,
-                         startDate: eventsTable.startDate,
-                         endDate: eventsTable.endDate,
-                         bannerUrl: eventsTable.bannerUrl,
-                         city: eventsTable.city,
-                         country: eventsTable.country,
-                         isOnline: eventsTable.isOnline,
-                         similarity: similarity
-                    })
-                    .from(eventsTable)
-                    .where(eq(eventsTable.status, "published"))
-                    .orderBy(sql`${similarity} DESC NULLS LAST`, desc(eventsTable.createdAt))
-                    .limit(limitVal)
-                    .offset(offset);
-            } else {
-                results = await db
-                    .select({
-                         id: eventsTable.id,
-                         title: eventsTable.title,
-                         description: eventsTable.description,
-                         startDate: eventsTable.startDate,
-                         endDate: eventsTable.endDate,
-                         bannerUrl: eventsTable.bannerUrl,
-                         city: eventsTable.city,
-                         country: eventsTable.country,
-                         isOnline: eventsTable.isOnline,
-                    })
-                    .from(eventsTable)
-                    .where(eq(eventsTable.status, "published"))
-                    .orderBy(desc(eventsTable.createdAt))
-                    .limit(limitVal)
-                    .offset(offset);
+                similarityExpr = sql<number>`1 - (${eventsTable.embedding} <=> ${JSON.stringify(userEmbedding)})`;
             }
         }
+
+        // Build selection object
+        const selection: any = {
+            id: eventsTable.id,
+            title: eventsTable.title,
+            description: eventsTable.description,
+            startDate: eventsTable.startDate,
+            endDate: eventsTable.endDate,
+            bannerUrl: eventsTable.bannerUrl,
+            city: eventsTable.city,
+            country: eventsTable.country,
+            isOnline: eventsTable.isOnline,
+            latitude: eventsTable.latitude,
+            longitude: eventsTable.longitude,
+        };
+        if (distanceExpr) selection.distance = distanceExpr;
+        if (similarityExpr) selection.similarity = similarityExpr;
+
+        // Build base query
+        let query = db
+            .select(selection)
+            .from(eventsTable)
+            .$dynamic();
+
+        const conditions = [eq(eventsTable.status, "published")];
+
+        if (similarityExpr && q) {
+             conditions.push(sql`${similarityExpr} > 0.25`);
+        }
+
+        // 2. Category Filter
+        if (categoryNames.length > 0) {
+            conditions.push(sql`EXISTS (
+                SELECT 1 FROM ${eventCategoriesTable} 
+                WHERE ${eventCategoriesTable.eventId} = ${eventsTable.id} 
+                AND ${eventCategoriesTable.categoryName} IN ${categoryNames}
+            )`);
+        }
+
+        // 3. Distance Filter (Inclusive of Online and Legacy events)
+        if (distanceExpr && searchRadius) {
+            const distanceCondition = or(
+                sql`${distanceExpr} <= ${searchRadius}`,
+                eq(eventsTable.isOnline, true),
+                sql`${eventsTable.latitude} IS NULL`
+            );
+            if (distanceCondition) conditions.push(distanceCondition);
+        }
+
+        // 4. Ranking
+        let orderBy = [];
+        if (similarityExpr && distanceExpr) {
+            // Blend interest similarity (70%) with proximity (30%) only for events that have coordinates.
+            // Online/Legacy events use pure similarity.
+            const blendedScore = sql`CASE 
+                WHEN ${eventsTable.latitude} IS NOT NULL THEN (${similarityExpr} * 0.7) + ((1 / (1 + ${distanceExpr})) * 0.3)
+                ELSE ${similarityExpr}
+            END`;
+            orderBy.push(desc(blendedScore));
+        } else if (similarityExpr) {
+            orderBy.push(desc(similarityExpr));
+        } else if (distanceExpr) {
+            orderBy.push(asc(distanceExpr));
+        }
+        orderBy.push(desc(eventsTable.createdAt));
+
+        const results = await query
+            .where(conditions.length > 0 ? and(...conditions) : undefined)
+            .orderBy(...orderBy)
+            .limit(limitVal)
+            .offset(offset);
 
         // Fetch categories for each event
         const eventsWithCategories = await Promise.all(results.map(async (event) => {
@@ -957,12 +1017,11 @@ export const searchEvents = async (req: Request, res: Response) => {
         }));
 
         res.json({ events: eventsWithCategories });
-
     } catch (error: any) {
         console.error("Search error:", error);
         res.status(500).json({ message: "Search failed", error: error.message });
     }
-}
+};
 
 export const trackInterest = async (req: Request, res: Response) => {
     try {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaInfoCircle, FaThList, FaRss, FaBell } from "react-icons/fa";
+import { Link } from "react-router-dom";
 import AnnouncementFeed from "./EventManagement/AnnouncementFeed";
 import { cn } from "../utils/helpers";
 
@@ -28,6 +29,7 @@ export interface Event {
     isOnline: boolean;
     segments: Segment[];
     organizer: {
+        id: string;
         name: string;
     };
     eventCategories?: string[];
@@ -266,7 +268,7 @@ export default function EventDetailsView({ event, user, registeredSegmentIds = [
                             </div>
                             <div>
                                 <p className="font-bold text-white">{event.organizer?.name}</p>
-                                <a href="#" className="text-xs text-accent hover:underline">View Profile</a>
+                                <Link to={`/organizer/${event.organizer?.id}`} className="text-xs text-accent hover:underline">View Profile</Link>
                             </div>
                         </div>
                     </div>
