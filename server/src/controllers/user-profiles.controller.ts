@@ -88,7 +88,6 @@ export const searchUsers = async (req: Request, res: Response) => {
                 )
             )
             .limit(20);
-        console.log("users: ", users)
         res.json({ users });
     } catch (error) {
         console.error("Search users error:", error);

@@ -281,7 +281,6 @@ export const verifyOrganizerEmail = async (req: Request, res: Response) => {
 };
 
 export const searchOrganizers = async (req: Request, res: Response) => {
-    console.log("searchOrganizers");
     try {
         const { q } = req.query;
         if (!q || typeof q !== "string") {
@@ -304,8 +303,6 @@ export const searchOrganizers = async (req: Request, res: Response) => {
                 )
             )
             .limit(20);
-
-        console.log("organizers:", organizers);
 
         res.json({ organizers });
     } catch (error) {
