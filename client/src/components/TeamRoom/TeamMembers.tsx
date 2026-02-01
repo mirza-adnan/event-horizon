@@ -1,5 +1,5 @@
 import { FaShieldAlt } from "react-icons/fa";
-// import { cn } from "../../utils/helpers";
+import { Link } from "react-router-dom";
 
 interface Member {
     userId: string;
@@ -37,9 +37,11 @@ export default function TeamMembers({ members /*, myRole */ }: TeamMembersProps)
                                     <span className="text-gray-400 font-bold">{member.firstName.charAt(0)}</span>
                                 )}
                             </div>
-                            <div>
+                            <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
-                                    <p className="text-white font-medium">{member.firstName} {member.lastName}</p>
+                                    <Link to={`/user/${member.userId}`} className="text-white font-medium hover:text-accent transition-colors">
+                                        {member.firstName} {member.lastName}
+                                    </Link>
                                     {member.role === 'leader' && (
                                         <FaShieldAlt className="text-purple-400 text-xs" title="Leader" />
                                     )}
