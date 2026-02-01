@@ -43,6 +43,8 @@ export default function EventCreate() {
         country: "Bangladesh",
         startDate: "",
         endDate: "",
+        latitude: undefined as number | undefined,
+        longitude: undefined as number | undefined,
     });
 
     // State for banner file
@@ -93,6 +95,8 @@ export default function EventCreate() {
                         country: e.country,
                         startDate: e.startDate ? e.startDate.split("T")[0] : "",
                         endDate: e.endDate ? e.endDate.split("T")[0] : "",
+                        latitude: e.latitude,
+                        longitude: e.longitude,
                     });
                     setBannerUrl(e.bannerUrl ? `http://localhost:5050${e.bannerUrl}` : null);
                     setIsOnline(e.isOnline);
@@ -236,8 +240,8 @@ export default function EventCreate() {
         if (!basicInfo.title.trim()) errors.title = "Title is required";
         if (!basicInfo.description.trim())
             errors.description = "Description is required";
-        if (!basicInfo.address.trim()) errors.address = "Address is required";
-        if (!basicInfo.city.trim()) errors.city = "City is required";
+        if (!isOnline && !basicInfo.address.trim()) errors.address = "Address is required";
+        if (!isOnline && !basicInfo.city.trim()) errors.city = "City is required";
         if (!basicInfo.startDate) errors.startDate = "Start date is required";
 
         if (
@@ -311,7 +315,7 @@ export default function EventCreate() {
         return isValid;
     };
 
-    const handleBasicInfoChange = (name: string, value: string) => {
+    const handleBasicInfoChange = (name: string, value: any) => {
         setBasicInfo((prev) => ({ ...prev, [name]: value }));
 
         // Clear error when user starts typing
@@ -424,6 +428,8 @@ export default function EventCreate() {
             country: "Bangladesh",
             startDate: "",
             endDate: "",
+            latitude: undefined,
+            longitude: undefined,
         });
         setBannerFile(null);
         setBannerUrl(null);
@@ -494,6 +500,9 @@ export default function EventCreate() {
             formData.append("status", status);
             formData.append("isOnline", String(isOnline));
             formData.append("hasMultipleSegments", String(hasMultipleSegments));
+            
+            if (basicInfo.latitude) formData.append("latitude", String(basicInfo.latitude));
+            if (basicInfo.longitude) formData.append("longitude", String(basicInfo.longitude));
 
             // Add banner file if exists
             if (bannerFile) {

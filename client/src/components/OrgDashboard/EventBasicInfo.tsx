@@ -1,5 +1,6 @@
 import ImageUpload from "../ImageUpload";
 import FacebookEventImport from "./FacebookEventImport";
+import MapPicker from "../MapPicker";
 
 interface EventBasicInfoProps {
     basicInfo: {
@@ -10,10 +11,12 @@ interface EventBasicInfoProps {
         country: string;
         startDate: string;
         endDate: string;
+        latitude?: number;
+        longitude?: number;
     };
     bannerFile: File | null;
     bannerUrl: string | null;
-    onBasicInfoChange: (name: string, value: string) => void;
+    onBasicInfoChange: (name: string, value: any) => void;
     onBannerChange: (file: File | null) => void;
     onImportComplete: (data: any) => void;
     errors: Record<string, string>;
@@ -27,7 +30,6 @@ interface EventBasicInfoProps {
 
 export default function EventBasicInfo({
     basicInfo,
-    bannerFile,
     bannerUrl,
     onBasicInfoChange,
     onBannerChange,
@@ -43,6 +45,16 @@ export default function EventBasicInfo({
     const handleImportComplete = (data: any) => {
         onImportComplete(data);
         if (data.isOnline !== undefined) onIsOnlineChange(data.isOnline);
+    };
+
+    const handleOnlineToggle = (checked: boolean) => {
+        onIsOnlineChange(checked);
+        if (checked) {
+            onBasicInfoChange("address", "Online");
+            onBasicInfoChange("city", "");
+        } else if (basicInfo.address === "Online") {
+            onBasicInfoChange("address", "");
+        }
     };
 
     return (
@@ -80,7 +92,7 @@ export default function EventBasicInfo({
                         type="checkbox"
                         id="isOnline"
                         checked={isOnline}
-                        onChange={(e) => onIsOnlineChange(e.target.checked)}
+                        onChange={(e) => handleOnlineToggle(e.target.checked)}
                         className="w-5 h-5 rounded border-zinc-700 bg-zinc-800 text-accent focus:ring-accent"
                     />
                     <label htmlFor="isOnline" className="text-text-strong select-none cursor-pointer">
@@ -162,6 +174,20 @@ export default function EventBasicInfo({
                     )}
                 </div>
             </div>
+
+            {!isOnline && (
+                <div className="space-y-2">
+                    <label className="block ml-1">Exact Location (Optional)</label>
+                    <MapPicker 
+                        lat={basicInfo.latitude} 
+                        lng={basicInfo.longitude} 
+                        onChange={(lat, lng) => {
+                            onBasicInfoChange("latitude", lat);
+                            onBasicInfoChange("longitude", lng);
+                        }} 
+                    />
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
