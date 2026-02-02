@@ -302,6 +302,17 @@ export default function EventBasicInfo({
                                 className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
                             />
                         </div>
+                        <div className="space-y-2">
+                            <label className="block ml-1">Registration Fee (BDT)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={singleSegmentData.registrationFee || 0}
+                                onChange={(e) => onSingleSegmentChange("registrationFee", parseInt(e.target.value) || 0)}
+                                className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
+                            />
+                            <p className="text-[10px] text-zinc-500 ml-1">Set to 0 for free events</p>
+                        </div>
                     </div>
 
                      <div className="space-y-4">

@@ -211,6 +211,24 @@ export default function EventSegment({
 
                 <div className="space-y-4">
                     <div className="flex flex-col space-y-2">
+                            <label className="block">Registration Fee (BDT)</label> // Added field
+                            <input
+                                type="number"
+                                min="0"
+                                value={(segment as any).registrationFee || 0}
+                                onChange={(e) =>
+                                    onUpdateSegment(
+                                        segment.id,
+                                        "registrationFee",
+                                        parseInt(e.target.value) || 0
+                                    )
+                                }
+                                className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
+                            />
+                            <p className="text-[10px] text-zinc-500">Set to 0 for free events</p>
+                    </div>
+
+                    <div className="flex flex-col space-y-2">
                         <label className="block">Category</label>
                         <select
                             value={segment.categoryId}

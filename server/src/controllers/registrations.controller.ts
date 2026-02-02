@@ -21,8 +21,11 @@ export const createRegistration = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Event ID and Segment ID are required" });
         }
 
-        // 1. Fetch Event and Segment details (to check requirements, fees, etc - placeholder for now)
-        // const event = await db.select().from(eventsTable).where(eq(eventsTable.id, eventId));
+        // 1. Fetch Segment details to check restrictions
+        const [segment] = await db.select().from(segmentsTable).where(eq(segmentsTable.id, segmentId));
+        if (!segment) {
+            return res.status(404).json({ message: "Segment not found" });
+        }
 
         // 2. Determine Registration Type
         if (teamId) {
@@ -41,6 +44,28 @@ export const createRegistration = async (req: Request, res: Response) => {
             
             if (!membership) {
                 return res.status(403).json({ message: "Only team leaders can register the team" });
+            }
+
+            // Check Team Size Constraints
+            if (segment.minTeamSize || segment.maxTeamSize) {
+                const teamMembers = await db
+                    .select()
+                    .from(teamMembersTable)
+                    .where(eq(teamMembersTable.teamId, teamId));
+                
+                const teamSize = teamMembers.length;
+
+                if (segment.minTeamSize && teamSize < segment.minTeamSize) {
+                    return res.status(400).json({ 
+                        message: `Team size is too small. Minimum required: ${segment.minTeamSize}. Your team has: ${teamSize}` 
+                    });
+                }
+
+                if (segment.maxTeamSize && teamSize > segment.maxTeamSize) {
+                    return res.status(400).json({ 
+                        message: `Team size is too large. Maximum allowed: ${segment.maxTeamSize}. Your team has: ${teamSize}` 
+                    });
+                }
             }
 
             // Check duplicate registration
@@ -91,8 +116,7 @@ export const createRegistration = async (req: Request, res: Response) => {
             }
 
             // 3. Time Overlap Check
-            const [newSegment] = await db.select().from(segmentsTable).where(eq(segmentsTable.id, segmentId));
-            if (!newSegment) return res.status(404).json({ message: "Segment not found" });
+            const newSegment = segment; // Already fetched
 
             const existingRegs = await db
                 .select({

@@ -534,7 +534,8 @@ export default function EventCreate() {
                     isOnline: isOnline,
                     registrationDeadline: singleSegmentData.registrationDeadline || null,
                     minTeamSize: singleSegmentData.minTeamSize,
-                    maxTeamSize: singleSegmentData.maxTeamSize
+                    maxTeamSize: singleSegmentData.maxTeamSize,
+                    registrationFee: (singleSegmentData as any).registrationFee || 0
                  };
                  formData.append("segments", JSON.stringify([singleSegment]));
             }
@@ -598,7 +599,7 @@ export default function EventCreate() {
                 startTime: s.startTime,
                 endTime: s.endTime,
                 isTeamSegment: s.isTeamSegment,
-                registrationFee: 0 // Placeholder as it's not in form state yet? Or maybe I missed it.
+                registrationFee: (s as any).registrationFee // Placeholder as it's not in form state yet? Or maybe I missed it.
             })) 
             : [{
                 id: "single",
