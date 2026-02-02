@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ExternalEventCard from "../components/ExternalEventCard";
+import EventActionMenu from "../components/EventActionMenu";
 import { fetchExternalEvents } from "../utils/api";
 import { useUserAuth } from "../hooks/useUserAuth";
 import { Link } from "react-router-dom";
@@ -406,7 +407,11 @@ function Explore() {
                                                 </div>
 
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-accent transition-colors">{event.title}</h3>
+                                                    <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-accent transition-colors flex-1">{event.title}</h3>
+                                                    <EventActionMenu 
+                                                        eventTitle={event.title} 
+                                                        eventLink={`http://localhost:5173/events/${event.id}`} 
+                                                    />
                                                 </div>
                                                 <p className="text-zinc-400 text-sm mb-4 line-clamp-2">{event.description}</p>
                                             

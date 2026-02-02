@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaInfoCircle, FaThList, FaRss, FaBell } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import AnnouncementFeed from "./EventManagement/AnnouncementFeed";
+import EventActionMenu from "./EventActionMenu";
 import { cn } from "../utils/helpers";
 
 interface Segment {
@@ -88,7 +89,15 @@ export default function EventDetailsView({ event, user, registeredSegmentIds = [
                             </span>
                         ))}
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 shadow-lg">{event.title}</h1>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
+                        <h1 className="text-4xl md:text-5xl font-bold text-white shadow-lg">{event.title}</h1>
+                        <div className="flex items-center gap-3 pb-1">
+                             <EventActionMenu 
+                                eventTitle={event.title} 
+                                eventLink={window.location.href} 
+                             />
+                        </div>
+                    </div>
                     <div className="flex flex-wrap gap-6 text-gray-300">
                         <div className="flex items-center gap-2">
                              <FaCalendarAlt className="text-accent" />

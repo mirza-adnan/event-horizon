@@ -1,4 +1,5 @@
 import { FaMapMarkerAlt, FaCalendarAlt, FaExternalLinkAlt, FaGlobe } from "react-icons/fa";
+import EventActionMenu from "./EventActionMenu";
 
 interface ExternalEventProps {
     title: string;
@@ -51,12 +52,13 @@ function ExternalEventCard({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1c] to-transparent opacity-80" />
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-3 right-3 flex items-center gap-2">
                     {isOnline && (
-                        <span className="bg-accent/90 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                        <span className="bg-accent/90 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
                             <FaGlobe /> Online
                         </span>
                     )}
+                    <EventActionMenu eventTitle={title} eventLink={link} />
                 </div>
             </div>
 
