@@ -1,6 +1,7 @@
 import ImageUpload from "../ImageUpload";
 import FacebookEventImport from "./FacebookEventImport";
 import MapPicker from "../MapPicker";
+import VenueSearch from "./VenueSearch";
 
 interface EventBasicInfoProps {
     basicInfo: {
@@ -47,11 +48,20 @@ export default function EventBasicInfo({
         if (data.isOnline !== undefined) onIsOnlineChange(data.isOnline);
     };
 
+    const handleVenueSelect = (venue: any) => {
+        onBasicInfoChange("address", venue.name);
+        if (venue.city) onBasicInfoChange("city", venue.city);
+        onBasicInfoChange("latitude", venue.lat);
+        onBasicInfoChange("longitude", venue.lng);
+    };
+
     const handleOnlineToggle = (checked: boolean) => {
         onIsOnlineChange(checked);
         if (checked) {
             onBasicInfoChange("address", "Online");
             onBasicInfoChange("city", "");
+            onBasicInfoChange("latitude", undefined);
+            onBasicInfoChange("longitude", undefined);
         } else if (basicInfo.address === "Online") {
             onBasicInfoChange("address", "");
         }
@@ -131,6 +141,34 @@ export default function EventBasicInfo({
                 />
             </div>
 
+            {!isOnline && (
+                <div className="space-y-4 p-5 bg-zinc-900 border border-zinc-800 rounded-2xl relative">
+                    <div className="flex flex-col gap-1">
+                        <label className="block text-xs font-bold text-accent uppercase tracking-widest">
+                            Venue Location
+                        </label>
+                        <p className="text-[10px] text-zinc-500 italic">
+                            Search for your venue or manually click on the map to set the location
+                        </p>
+                    </div>
+                    
+                    <div className="relative z-[1001]">
+                        <VenueSearch onSelect={handleVenueSelect} />
+                    </div>
+
+                    <div className="h-[300px] rounded-xl overflow-hidden border border-zinc-800 z-10">
+                        <MapPicker 
+                            lat={basicInfo.latitude} 
+                            lng={basicInfo.longitude} 
+                            onChange={(lat, lng) => {
+                                onBasicInfoChange("latitude", lat);
+                                onBasicInfoChange("longitude", lng);
+                            }} 
+                        />
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label className="block ml-1">Address {isOnline ? "" : "*"}</label>
@@ -175,19 +213,6 @@ export default function EventBasicInfo({
                 </div>
             </div>
 
-            {!isOnline && (
-                <div className="space-y-2">
-                    <label className="block ml-1">Exact Location (Optional)</label>
-                    <MapPicker 
-                        lat={basicInfo.latitude} 
-                        lng={basicInfo.longitude} 
-                        onChange={(lat, lng) => {
-                            onBasicInfoChange("latitude", lat);
-                            onBasicInfoChange("longitude", lng);
-                        }} 
-                    />
-                </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
