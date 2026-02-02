@@ -4,18 +4,21 @@ import { FaComments, FaUsers, FaCalendarAlt, FaSpinner } from "react-icons/fa";
 import { cn } from "../utils/helpers";
 import TeamChat from "../components/TeamRoom/TeamChat";
 import TeamMembers from "../components/TeamRoom/TeamMembers";
+import TeamEvents from "../components/TeamRoom/TeamEvents";
 
 export default function TeamRoom() {
     const { teamId } = useParams();
     const [activeTab, setActiveTab] = useState("chat");
     const [team, setTeam] = useState<any>(null);
     const [members, setMembers] = useState<any[]>([]);
+    const [teamEvents, setTeamEvents] = useState<any[]>([]);
     const [myRole, setMyRole] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
         fetchTeamDetails();
+        fetchEvents();
     }, [teamId]);
 
     const fetchTeamDetails = async () => {
@@ -35,6 +38,20 @@ export default function TeamRoom() {
             setError("Error loading team");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchEvents = async () => {
+        try {
+            const res = await fetch(`http://localhost:5050/api/teams/${teamId}/events`, {
+                credentials: "include"
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setTeamEvents(data.events);
+            }
+        } catch (err) {
+            console.error("Error fetching events", err);
         }
     };
 
@@ -108,12 +125,20 @@ export default function TeamRoom() {
                  )}
                  {activeTab === "members" && (
                      <div className="h-full overflow-y-auto p-6">
-                        <TeamMembers members={members} myRole={myRole} />
+                        <TeamMembers 
+                            teamId={teamId!}
+                            members={members} 
+                            myRole={myRole} 
+                            onMemberRemoved={() => {
+                                fetchTeamDetails();
+                                fetchEvents();
+                            }} 
+                        />
                      </div>
                  )}
                  {activeTab === "events" && (
-                     <div className="h-full overflow-y-auto p-6 text-center text-gray-500">
-                         Events tab coming soon...
+                     <div className="h-full overflow-y-auto p-6">
+                         <TeamEvents events={teamEvents} />
                      </div>
                  )}
             </div>
