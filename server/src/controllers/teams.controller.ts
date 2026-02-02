@@ -8,6 +8,9 @@ import {
     teamInvitesTable,
     teamChatsTable,
     notificationsTable,
+    registrationsTable,
+    eventsTable,
+    segmentsTable,
     NewTeam,
     NewUser,
     NewNotification
@@ -470,6 +473,85 @@ export const respondToInvite = async (req: Request, res: Response) => {
         res.json({ message: `Invite ${action}ed successfully` });
     } catch (error) {
         console.error("Respond to invite error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// Get upcoming events for a team
+export const getTeamEvents = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { teamId } = req.params;
+
+        // Verify membership
+        const [membership] = await db
+            .select()
+            .from(teamMembersTable)
+            .where(
+                and(
+                    eq(teamMembersTable.teamId, teamId),
+                    eq(teamMembersTable.userId, userId)
+                )
+            );
+
+        if (!membership) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        const teamEvents = await db
+            .select({
+                registrationId: registrationsTable.id,
+                eventId: eventsTable.id,
+                eventTitle: eventsTable.title,
+                eventBannerUrl: eventsTable.bannerUrl,
+                eventStartDate: eventsTable.startDate,
+                segmentId: segmentsTable.id,
+                segmentName: segmentsTable.name,
+                segmentStartTime: segmentsTable.startTime,
+                hasMultipleSegments: eventsTable.hasMultipleSegments
+            })
+            .from(registrationsTable)
+            .innerJoin(eventsTable, eq(registrationsTable.eventId, eventsTable.id))
+            .innerJoin(segmentsTable, eq(registrationsTable.segmentId, segmentsTable.id))
+            .where(eq(registrationsTable.teamId, teamId))
+            .orderBy(desc(segmentsTable.startTime));
+
+        res.json({ events: teamEvents });
+    } catch (error) {
+        console.error("Get team events error:", error);
+        res.status(500).json({ message: "Failed to fetch team events" });
+    }
+};
+
+// Remove a member from the team
+export const removeTeamMember = async (req: Request, res: Response) => {
+    try {
+        const leaderId = (req as any).userId;
+        const { teamId, userId: targetUserId } = req.params;
+
+        // 1. Verify requester is leader
+        const [team] = await db
+            .select()
+            .from(teamsTable)
+            .where(and(eq(teamsTable.id, teamId), eq(teamsTable.leaderId, leaderId)));
+
+        if (!team) {
+            return res.status(403).json({ message: "Only the team leader can remove members" });
+        }
+
+        // 2. Prevent leader from removing themselves
+        if (targetUserId === leaderId) {
+            return res.status(400).json({ message: "Leader cannot be removed from the team" });
+        }
+
+        // 3. Delete
+        await db
+            .delete(teamMembersTable)
+            .where(and(eq(teamMembersTable.teamId, teamId), eq(teamMembersTable.userId, targetUserId)));
+
+        res.json({ message: "Member removed successfully" });
+    } catch (error) {
+        console.error("Remove member error:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };

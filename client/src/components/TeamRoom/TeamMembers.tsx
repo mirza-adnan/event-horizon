@@ -1,4 +1,4 @@
-import { FaShieldAlt } from "react-icons/fa";
+import { FaShieldAlt, FaTrashAlt } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 interface Member {
@@ -13,14 +13,34 @@ interface Member {
 }
 
 interface TeamMembersProps {
+    teamId: string;
     members: Member[];
     myRole: string; // 'leader' | 'member'
+    onMemberRemoved?: () => void;
 }
 
-export default function TeamMembers({ members /*, myRole */ }: TeamMembersProps) {
-    // const isLeader = myRole === 'leader'; 
-    // Commented out unused variable to prevent lint error
-    // If we implement remove functionality later, we will uncomment and use it.
+export default function TeamMembers({ teamId, members, myRole, onMemberRemoved }: TeamMembersProps) {
+    const isLeader = myRole === 'leader'; 
+
+    const handleRemove = async (userId: string) => {
+        if (!window.confirm("Are you sure you want to remove this member?")) return;
+        
+        try {
+            const res = await fetch(`http://localhost:5050/api/teams/${teamId}/members/${userId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            
+            if (res.ok) {
+                onMemberRemoved?.();
+            } else {
+                const data = await res.json();
+                alert(data.message || "Failed to remove member");
+            }
+        } catch (err) {
+            alert("Error removing member");
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -51,13 +71,15 @@ export default function TeamMembers({ members /*, myRole */ }: TeamMembersProps)
                         </div>
 
                         {/* Leader Actions */}
-                        {/* 
                         {isLeader && member.role !== 'leader' && (
-                            <button className="text-zinc-500 hover:text-red-400 p-2 opacity-0 group-hover:opacity-100 transition-opacity" title="Remove Member">
-                                <FaTrash />
+                            <button 
+                                onClick={() => handleRemove(member.userId)}
+                                className="text-zinc-500 hover:text-red-400 p-2 opacity-0 group-hover:opacity-100 transition-opacity" 
+                                title="Remove Member"
+                            >
+                                <FaTrashAlt />
                             </button>
                         )}
-                        */}
                     </div>
                 ))}
             </div>
