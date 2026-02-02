@@ -13,6 +13,7 @@ import EventsList from "./components/OrgDashboard/EventsList.tsx";
 import EventCreate from "./components/OrgDashboard/EventCreate.tsx";
 import UserLogin from "./pages/UserLogin.tsx";
 import Teams from "./pages/Teams.tsx";
+import Bookmarks from "./pages/Bookmarks.tsx";
 import TeamRoom from "./pages/TeamRoom.tsx";
 import EventDetails from "./pages/EventDetails.tsx";
 import OrgLoginRedirect from "./pages/OrgLoginRedirect.tsx";
@@ -54,6 +55,10 @@ const router = createBrowserRouter([
             {
                 path: "/teams",
                 element: <Teams />,
+            },
+            {
+                path: "/bookmarks",
+                element: <Bookmarks />,
             },
             {
                 path: "/teams/:teamId",

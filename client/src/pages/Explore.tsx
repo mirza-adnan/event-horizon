@@ -4,7 +4,7 @@ import EventActionMenu from "../components/EventActionMenu";
 import { fetchExternalEvents } from "../utils/api";
 import { useUserAuth } from "../hooks/useUserAuth";
 import { Link } from "react-router-dom";
-import { FaCompass, FaSpinner, FaSearch, FaMapMarkerAlt, FaTags, FaFilter } from "react-icons/fa";
+import { FaCompass, FaSpinner, FaSearch, FaMapMarkerAlt, FaTags, FaFilter, FaBookmark, FaRegBookmark } from "react-icons/fa";
 
 const CATEGORY_OPTIONS = [
     "Tech", "Business", "Education", "Science", "Arts", "Sports", "Music", "Gaming", 
@@ -57,6 +57,53 @@ function Explore() {
     const [users, setUsers] = useState<any[]>([]);
     const [loadingOther, setLoadingOther] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+    const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
+
+    const fetchBookmarks = async () => {
+        if (!isAuthenticated) return;
+        try {
+            const res = await fetch("http://localhost:5050/api/bookmarks/my", {
+                credentials: "include"
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const ids = data.bookmarks.map((b: any) => b.event?.id || b.externalEvent?.id);
+                setBookmarkedIds(ids);
+            }
+        } catch (error) {
+            console.error("Failed to fetch bookmarks:", error);
+        }
+    };
+
+    const toggleBookmark = async (e: React.MouseEvent, eventId?: string, externalEventId?: string) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (!isAuthenticated) return;
+        
+        try {
+            const res = await fetch("http://localhost:5050/api/bookmarks/toggle", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ eventId, externalEventId }),
+                credentials: "include"
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const id = eventId || externalEventId;
+                if (data.status === "added") {
+                    setBookmarkedIds(prev => [...prev, id!]);
+                } else {
+                    setBookmarkedIds(prev => prev.filter(i => i !== id));
+                }
+            }
+        } catch (error) {
+            console.error("Failed to toggle bookmark:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchBookmarks();
+    }, [isAuthenticated]);
 
     useEffect(() => {
         // Get user location
@@ -408,10 +455,21 @@ function Explore() {
 
                                                 <div className="flex justify-between items-start mb-2">
                                                     <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-accent transition-colors flex-1">{event.title}</h3>
-                                                    <EventActionMenu 
-                                                        eventTitle={event.title} 
-                                                        eventLink={`http://localhost:5173/events/${event.id}`} 
-                                                    />
+                                                    <div className="flex items-center gap-1">
+                                                        {isAuthenticated && (
+                                                            <button
+                                                                onClick={(e) => toggleBookmark(e, event.id)}
+                                                                className="p-2 hover:bg-white/10 rounded-full text-accent transition-colors"
+                                                                title={bookmarkedIds.includes(event.id) ? "Remove Bookmark" : "Bookmark Event"}
+                                                            >
+                                                                {bookmarkedIds.includes(event.id) ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
+                                                            </button>
+                                                        )}
+                                                        <EventActionMenu 
+                                                            eventTitle={event.title} 
+                                                            eventLink={`http://localhost:5173/events/${event.id}`} 
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <p className="text-zinc-400 text-sm mb-4 line-clamp-2">{event.description}</p>
                                             
@@ -459,7 +517,11 @@ function Explore() {
                                                 onMouseEnter={() => handleHover(event.id)}
                                                 onClick={() => handleClick(event.id)}
                                             >
-                                                <ExternalEventCard {...event} />
+                                                <ExternalEventCard 
+                                                {...event} 
+                                                isBookmarked={bookmarkedIds.includes(event.id)}
+                                                onBookmarkToggle={(e) => toggleBookmark(e, undefined, event.id)}
+                                            />
                                             </div>
                                         ))}
                                     </div>

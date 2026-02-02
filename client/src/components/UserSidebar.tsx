@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { FaCompass, FaUsers, FaSignOutAlt, FaUser, FaBell } from "react-icons/fa";
+import { FaCompass, FaUsers, FaSignOutAlt, FaUser, FaBell, FaBookmark } from "react-icons/fa";
 import { cn } from "../utils/helpers";
+import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 interface UserSidebarProps {
     user: any;
@@ -34,6 +34,7 @@ export default function UserSidebar({ user, onLogout }: UserSidebarProps) {
 
     const menuItems = [
         { icon: FaCompass, label: "Explore", path: "/explore" },
+        { icon: FaBookmark, label: "Bookmarks", path: "/bookmarks" },
         { icon: FaUsers, label: "Teams", path: "/teams" },
         { icon: FaBell, label: "Notifications", path: "/notifications", badge: unreadCount },
     ];

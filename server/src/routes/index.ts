@@ -8,6 +8,7 @@ import teamsRouter from "./teams.routes";
 import registrationsRouter from "./registrations.routes";
 import announcementsRouter from "./announcements.routes";
 import notificationsRouter from "./notifications.routes";
+import bookmarksRouter from "./bookmarks.routes";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/teams", teamsRouter);
 router.use("/registrations", registrationsRouter);
 router.use("/announcements", announcementsRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/bookmarks", bookmarksRouter);
 
 export default router;
