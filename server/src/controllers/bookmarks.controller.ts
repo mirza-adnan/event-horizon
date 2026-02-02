@@ -6,21 +6,17 @@ import { bookmarksTable, eventsTable, externalEventsTable } from "../db/schema";
 export const toggleBookmark = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { eventId, externalEventId } = req.body;
+        const { eventId } = req.body;
 
-        if (!eventId && !externalEventId) {
-            return res.status(400).json({ message: "Either eventId or externalEventId is required" });
+        if (!eventId) {
+            return res.status(400).json({ message: "eventId is required" });
         }
 
         // Check if bookmark already exists
-        const whereClause = eventId 
-            ? and(eq(bookmarksTable.userId, userId), eq(bookmarksTable.eventId, eventId))
-            : and(eq(bookmarksTable.userId, userId), eq(bookmarksTable.externalEventId, externalEventId));
-
         const [existing] = await db
             .select()
             .from(bookmarksTable)
-            .where(whereClause);
+            .where(and(eq(bookmarksTable.userId, userId), eq(bookmarksTable.eventId, eventId)));
 
         if (existing) {
             // Remove bookmark
@@ -30,8 +26,7 @@ export const toggleBookmark = async (req: Request, res: Response) => {
             // Add bookmark
             await db.insert(bookmarksTable).values({
                 userId,
-                eventId: eventId || null,
-                externalEventId: externalEventId || null,
+                eventId
             });
             return res.status(201).json({ message: "Bookmark added", status: "added" });
         }
@@ -57,22 +52,10 @@ export const getMyBookmarks = async (req: Request, res: Response) => {
                     startDate: eventsTable.startDate,
                     city: eventsTable.city,
                     isOnline: eventsTable.isOnline,
-                },
-                externalEvent: {
-                    id: externalEventsTable.id,
-                    title: externalEventsTable.title,
-                    description: externalEventsTable.description,
-                    imageUrl: externalEventsTable.imageUrl,
-                    startDate: externalEventsTable.startDate,
-                    location: externalEventsTable.location,
-                    isOnline: externalEventsTable.isOnline,
-                    link: externalEventsTable.link,
-                    categories: externalEventsTable.categories,
                 }
             })
             .from(bookmarksTable)
-            .leftJoin(eventsTable, eq(bookmarksTable.eventId, eventsTable.id))
-            .leftJoin(externalEventsTable, eq(bookmarksTable.externalEventId, externalEventsTable.id))
+            .innerJoin(eventsTable, eq(bookmarksTable.eventId, eventsTable.id))
             .where(eq(bookmarksTable.userId, userId));
 
         res.status(200).json({ bookmarks });

@@ -1,4 +1,4 @@
-import { FaMapMarkerAlt, FaCalendarAlt, FaExternalLinkAlt, FaGlobe, FaBookmark, FaRegBookmark } from "react-icons/fa";
+import { FaMapMarkerAlt, FaCalendarAlt, FaExternalLinkAlt, FaGlobe } from "react-icons/fa";
 import EventActionMenu from "./EventActionMenu";
 
 interface ExternalEventProps {
@@ -10,8 +10,6 @@ interface ExternalEventProps {
     link: string;
     categories: string[];
     onClick?: () => void;
-    isBookmarked?: boolean;
-    onBookmarkToggle?: (e: React.MouseEvent) => void;
 }
 
 function ExternalEventCard({
@@ -23,8 +21,6 @@ function ExternalEventCard({
     link,
     categories,
     onClick,
-    isBookmarked,
-    onBookmarkToggle,
 }: ExternalEventProps) {
     const formatDate = (dateString: string) => {
         try {
@@ -61,19 +57,6 @@ function ExternalEventCard({
                         <span className="bg-accent/90 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 mr-1">
                             <FaGlobe /> Online
                         </span>
-                    )}
-                    {onBookmarkToggle && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                onBookmarkToggle(e);
-                            }}
-                            className="p-2 hover:bg-white/10 rounded-full text-accent transition-colors"
-                            title={isBookmarked ? "Remove Bookmark" : "Bookmark Event"}
-                        >
-                            {isBookmarked ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
-                        </button>
                     )}
                     <EventActionMenu eventTitle={title} eventLink={link} />
                 </div>

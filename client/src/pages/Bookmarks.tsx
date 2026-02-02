@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FaBookmark, FaRegBookmark, FaSpinner, FaTrashAlt } from "react-icons/fa";
 import { useUserAuth } from "../hooks/useUserAuth";
-import ExternalEventCard from "../components/ExternalEventCard";
 import EventActionMenu from "../components/EventActionMenu";
 
 interface Bookmark {
     id: string;
     createdAt: string;
-    event?: {
+    event: {
         id: string;
         title: string;
         description: string;
@@ -16,17 +15,6 @@ interface Bookmark {
         startDate: string;
         city: string;
         isOnline: boolean;
-    };
-    externalEvent?: {
-        id: string;
-        title: string;
-        description: string;
-        imageUrl?: string;
-        startDate: string;
-        location: string;
-        isOnline: boolean;
-        link: string;
-        categories: string[];
     };
 }
 
@@ -55,8 +43,6 @@ export default function Bookmarks() {
         e.stopPropagation();
         e.preventDefault();
         
-        // We can just use the toggle endpoint with the eventId if we want, 
-        // but since we have the bookmarkId, let's just use the toggle by event logic for consistency
         const bookmark = bookmarks.find(b => b.id === bookmarkId);
         if (!bookmark) return;
 
@@ -65,8 +51,7 @@ export default function Bookmarks() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
-                    eventId: bookmark.event?.id, 
-                    externalEventId: bookmark.externalEvent?.id 
+                    eventId: bookmark.event.id
                 }),
                 credentials: "include"
             });
@@ -127,73 +112,57 @@ export default function Bookmarks() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {bookmarks.map((bookmark) => {
-                        if (bookmark.event) {
-                            return (
-                                <Link 
-                                    key={bookmark.id} 
-                                    to={`/events/${bookmark.event.id}`}
-                                    className="group relative bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800/50 hover:border-accent transition-all duration-300 shadow-xl hover:shadow-accent/5 flex flex-col"
-                                >
-                                    <div className="aspect-video relative overflow-hidden bg-zinc-800">
-                                        {bookmark.event.bannerUrl ? (
-                                            <img
-                                                src={`http://localhost:5050${bookmark.event.bannerUrl}`}
-                                                alt={bookmark.event.title}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-zinc-700 font-bold opacity-20">
-                                                Event Horizon
-                                            </div>
-                                        )}
-                                        <div className="absolute top-4 right-4 flex gap-2">
-                                            <button
-                                                onClick={(e) => handleRemoveBookmark(e, bookmark.id)}
-                                                className="p-2.5 bg-zinc-950/80 backdrop-blur-md rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
-                                                title="Remove Bookmark"
-                                            >
-                                                <FaTrashAlt size={12} />
-                                            </button>
-                                            <div onClick={e => e.preventDefault()} className="p-2.5 bg-zinc-950/80 backdrop-blur-md rounded-full text-accent shadow-lg">
-                                                 <EventActionMenu 
-                                                    eventTitle={bookmark.event.title} 
-                                                    eventLink={`http://localhost:5173/events/${bookmark.event.id}`} 
-                                                 />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="p-6 flex flex-col flex-1">
-                                        <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-accent transition-colors">
-                                            {bookmark.event.title}
-                                        </h3>
-                                        <p className="text-zinc-500 text-sm mb-6 line-clamp-2">
-                                            {bookmark.event.description}
-                                        </p>
-                                        <div className="mt-auto flex items-center justify-between text-xs font-medium uppercase tracking-widest">
-                                            <div className="flex items-center gap-4 text-zinc-400">
-                                                <span>{new Date(bookmark.event.startDate).toLocaleDateString()}</span>
-                                                <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-                                                <span className="text-accent">{bookmark.event.city}</span>
-                                            </div>
-                                            <span className="text-zinc-600 text-[10px]">Platform</span>
-                                        </div>
-                                    </div>
-                                </Link>
-                            );
-                        } else if (bookmark.externalEvent) {
-                            return (
-                                <div key={bookmark.id} className="relative group">
-                                    <ExternalEventCard 
-                                        {...bookmark.externalEvent} 
-                                        isBookmarked={true}
-                                        onBookmarkToggle={(e) => handleRemoveBookmark(e, bookmark.id)}
+                    {bookmarks.map((bookmark) => (
+                        <Link 
+                            key={bookmark.id} 
+                            to={`/events/${bookmark.event.id}`}
+                            className="group relative bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800/50 hover:border-accent transition-all duration-300 shadow-xl hover:shadow-accent/5 flex flex-col"
+                        >
+                            <div className="aspect-video relative overflow-hidden bg-zinc-800">
+                                {bookmark.event.bannerUrl ? (
+                                    <img
+                                        src={`http://localhost:5050${bookmark.event.bannerUrl}`}
+                                        alt={bookmark.event.title}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                     />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-700 font-bold opacity-20">
+                                        Event Horizon
+                                    </div>
+                                )}
+                                <div className="absolute top-4 right-4 flex gap-2">
+                                    <button
+                                        onClick={(e) => handleRemoveBookmark(e, bookmark.id)}
+                                        className="p-2.5 bg-zinc-950/80 backdrop-blur-md rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                                        title="Remove Bookmark"
+                                    >
+                                        <FaTrashAlt size={12} />
+                                    </button>
+                                    <div onClick={e => e.preventDefault()} className="p-2.5 bg-zinc-950/80 backdrop-blur-md rounded-full text-accent shadow-lg">
+                                            <EventActionMenu 
+                                            eventTitle={bookmark.event.title} 
+                                            eventLink={`http://localhost:5173/events/${bookmark.event.id}`} 
+                                            />
+                                    </div>
                                 </div>
-                            );
-                        }
-                        return null;
-                    })}
+                            </div>
+                            <div className="p-6 flex flex-col flex-1">
+                                <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-accent transition-colors">
+                                    {bookmark.event.title}
+                                </h3>
+                                <p className="text-zinc-500 text-sm mb-6 line-clamp-2">
+                                    {bookmark.event.description}
+                                </p>
+                                <div className="mt-auto flex items-center justify-between text-xs font-medium uppercase tracking-widest">
+                                    <div className="flex items-center gap-4 text-zinc-400">
+                                        <span>{new Date(bookmark.event.startDate).toLocaleDateString()}</span>
+                                        <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
+                                        <span className="text-accent">{bookmark.event.city}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
+                    ))}
                 </div>
             )}
         </div>

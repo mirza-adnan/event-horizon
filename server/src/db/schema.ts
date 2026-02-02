@@ -463,23 +463,15 @@ export const bookmarksTable = pgTable(
         userId: uuid("user_id")
             .notNull()
             .references(() => usersTable.id, { onDelete: "cascade" }),
-        eventId: uuid("event_id").references(() => eventsTable.id, {
-            onDelete: "cascade",
-        }),
-        externalEventId: uuid("external_event_id").references(
-            () => externalEventsTable.id,
-            { onDelete: "cascade" }
-        ),
+        eventId: uuid("event_id")
+            .notNull()
+            .references(() => eventsTable.id, {
+                onDelete: "cascade",
+            }),
         createdAt: timestamp("created_at", { withTimezone: true })
             .notNull()
             .defaultNow(),
-    },
-    (table) => ({
-        checkEither: check(
-            "check_either_event",
-            sql`${table.eventId} IS NOT NULL OR ${table.externalEventId} IS NOT NULL`
-        ),
-    })
+    }
 );
 
 export const bookmarksRelations = relations(bookmarksTable, ({ one }) => ({
@@ -490,10 +482,6 @@ export const bookmarksRelations = relations(bookmarksTable, ({ one }) => ({
     event: one(eventsTable, {
         fields: [bookmarksTable.eventId],
         references: [eventsTable.id],
-    }),
-    externalEvent: one(externalEventsTable, {
-        fields: [bookmarksTable.externalEventId],
-        references: [externalEventsTable.id],
     }),
 }));
 
