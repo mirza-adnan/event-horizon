@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FaImage, FaPaperPlane, FaSpinner } from "react-icons/fa";
-import { cn } from "../../utils/helpers";
 
 interface Announcement {
     id: string;
@@ -100,7 +99,7 @@ export default function AnnouncementFeed({
     const filteredAnnouncements = announcements.filter(a => {
         if (showAll) return true;
         if (segmentId === null) return a.segmentId === null;
-        return a.segmentId === segmentId;
+        return a.segmentId === segmentId || a.segmentId === null;
     });
 
     return (

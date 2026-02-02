@@ -125,6 +125,7 @@ export default function EventManagement() {
                         <AnnouncementFeed 
                             eventId={event.id} 
                             segmentId={selectedSegmentId} 
+                            isOrganizer={true}
                             feedLabel={selectedSegmentId 
                                 ? event.segments?.find(s => s.id === selectedSegmentId)?.name || "Segment"
                                 : event.title
