@@ -67,15 +67,15 @@ function Explore() {
             });
             if (res.ok) {
                 const data = await res.json();
-                const ids = data.bookmarks.map((b: any) => b.event?.id || b.externalEvent?.id);
-                setBookmarkedIds(ids);
+                const ids = data.bookmarks.map((b: any) => b.event?.id);
+                setBookmarkedIds(ids.filter(Boolean));
             }
         } catch (error) {
             console.error("Failed to fetch bookmarks:", error);
         }
     };
 
-    const toggleBookmark = async (e: React.MouseEvent, eventId?: string, externalEventId?: string) => {
+    const toggleBookmark = async (e: React.MouseEvent, eventId: string) => {
         e.stopPropagation();
         e.preventDefault();
         if (!isAuthenticated) return;
@@ -84,16 +84,15 @@ function Explore() {
             const res = await fetch("http://localhost:5050/api/bookmarks/toggle", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ eventId, externalEventId }),
+                body: JSON.stringify({ eventId }),
                 credentials: "include"
             });
             if (res.ok) {
                 const data = await res.json();
-                const id = eventId || externalEventId;
                 if (data.status === "added") {
-                    setBookmarkedIds(prev => [...prev, id!]);
+                    setBookmarkedIds(prev => [...prev, eventId]);
                 } else {
-                    setBookmarkedIds(prev => prev.filter(i => i !== id));
+                    setBookmarkedIds(prev => prev.filter(i => i !== eventId));
                 }
             }
         } catch (error) {
@@ -459,10 +458,10 @@ function Explore() {
                                                         {isAuthenticated && (
                                                             <button
                                                                 onClick={(e) => toggleBookmark(e, event.id)}
-                                                                className="p-2 hover:bg-white/10 rounded-full text-accent transition-colors"
+                                                                className="p-3 bg-zinc-950/80 backdrop-blur-md rounded-full text-accent hover:scale-110 transition-transform shadow-lg"
                                                                 title={bookmarkedIds.includes(event.id) ? "Remove Bookmark" : "Bookmark Event"}
                                                             >
-                                                                {bookmarkedIds.includes(event.id) ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
+                                                                {bookmarkedIds.includes(event.id) ? <FaBookmark size={16} /> : <FaRegBookmark size={16} />}
                                                             </button>
                                                         )}
                                                         <EventActionMenu 
@@ -517,11 +516,7 @@ function Explore() {
                                                 onMouseEnter={() => handleHover(event.id)}
                                                 onClick={() => handleClick(event.id)}
                                             >
-                                                <ExternalEventCard 
-                                                {...event} 
-                                                isBookmarked={bookmarkedIds.includes(event.id)}
-                                                onBookmarkToggle={(e) => toggleBookmark(e, undefined, event.id)}
-                                            />
+                                                <ExternalEventCard {...event} />
                                             </div>
                                         ))}
                                     </div>

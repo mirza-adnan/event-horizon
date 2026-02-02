@@ -225,14 +225,9 @@ export const getAllExternalEvents = async (req: Request, res: Response) => {
              conditions.push(sql`${externalEventsTable.categories} ?| ${categoryNames}`);
         }
 
-        // 3. Distance Filter (Inclusive of Online and Legacy events)
+        // 3. Distance Filter (Strictly for physical events when proximity filter is on)
         if (distanceExpr && searchRadius) {
-            const distanceCondition = or(
-                sql`${distanceExpr} <= ${searchRadius}`,
-                eq(externalEventsTable.isOnline, true),
-                sql`${externalEventsTable.latitude} IS NULL`
-            );
-            if (distanceCondition) conditions.push(distanceCondition);
+            conditions.push(sql`${distanceExpr} <= ${searchRadius}`);
         }
 
         // 4. Ranking
