@@ -70,6 +70,7 @@ export const createEvent = async (req: Request, res: Response) => {
             registrationDeadline?: string;
             minTeamSize?: number;
             maxTeamSize?: number;
+            registrationFee?: number;
         }> = [];
 
         if (req.body.segments) {
@@ -341,6 +342,7 @@ export const createEvent = async (req: Request, res: Response) => {
                         : null,
                     minTeamSize: segment.minTeamSize || null,
                     maxTeamSize: segment.maxTeamSize || null,
+                    registrationFee: segment.registrationFee || 0,
                     eventId: newEvent.id,
                     categoryId: segment.categoryId || null,
                 }));
@@ -573,6 +575,7 @@ export const updateEvent = async (req: Request, res: Response) => {
                     registrationDeadline: segment.registrationDeadline ? new Date(segment.registrationDeadline) : null,
                     minTeamSize: segment.minTeamSize || null,
                     maxTeamSize: segment.maxTeamSize || null,
+                    registrationFee: segment.registrationFee || 0,
                     eventId: id,
                     categoryId: segment.categoryId || null,
                 }));

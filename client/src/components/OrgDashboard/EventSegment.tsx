@@ -22,6 +22,7 @@ interface Segment {
     registrationDeadline: string;
     minTeamSize?: number;
     maxTeamSize?: number;
+    registrationFee?: number;
 }
 
 interface EventSegmentProps {
@@ -211,11 +212,11 @@ export default function EventSegment({
 
                 <div className="space-y-4">
                     <div className="flex flex-col space-y-2">
-                            <label className="block">Registration Fee (BDT)</label> // Added field
+                            <label className="block">Registration Fee (BDT)</label>
                             <input
                                 type="number"
                                 min="0"
-                                value={(segment as any).registrationFee || 0}
+                                value={segment.registrationFee || 0}
                                 onChange={(e) =>
                                     onUpdateSegment(
                                         segment.id,

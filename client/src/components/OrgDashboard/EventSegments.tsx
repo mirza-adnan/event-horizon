@@ -21,6 +21,7 @@ interface Segment {
     registrationDeadline: string;
     minTeamSize?: number;
     maxTeamSize?: number;
+    registrationFee?: number;
 }
 
 interface EventSegmentsProps {
