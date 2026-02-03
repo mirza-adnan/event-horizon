@@ -134,7 +134,7 @@ export async function scrapeFacebookEvents() {
                             title: lines[1],
                             date: lines[0],
                             location: lines[2],
-                            link: foundLink.href,
+                            link: foundLink.href.replace('web.facebook.com', 'www.facebook.com'),
                             imageUrl: imgSrc,
                         });
                     }
@@ -280,7 +280,7 @@ export async function scrapeEventsWithoutLogin() {
                         title,
                         date,
                         location,
-                        link: linkEl.href.split('?')[0],
+                        link: linkEl.href.split('?')[0].replace('web.facebook.com', 'www.facebook.com'),
                         imageUrl: imgSrc
                     });
                 });
@@ -310,7 +310,7 @@ export async function scrapeEventsWithoutLogin() {
                             title: lines[1] || lines[0], // Fallback
                             date: lines[0],
                             location: lines[2] || 'Online/N/A',
-                            link: link,
+                            link: link.replace('web.facebook.com', 'www.facebook.com'),
                             imageUrl: imgSrc
                         });
                     }
