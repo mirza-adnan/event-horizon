@@ -27,6 +27,7 @@ interface EventBasicInfoProps {
     onHasMultipleSegmentsChange: (value: boolean) => void;
     singleSegmentData: any;
     onSingleSegmentChange: (field: string, value: any) => void;
+    initialScrapeUrl?: string | null;
 }
 
 export default function EventBasicInfo({
@@ -42,6 +43,7 @@ export default function EventBasicInfo({
     onHasMultipleSegmentsChange,
     singleSegmentData,
     onSingleSegmentChange,
+    initialScrapeUrl,
 }: EventBasicInfoProps) {
     const handleImportComplete = (data: any) => {
         onImportComplete(data);
@@ -69,7 +71,10 @@ export default function EventBasicInfo({
 
     return (
         <div className="space-y-6">
-            <FacebookEventImport onScrapeComplete={handleImportComplete} />
+            <FacebookEventImport 
+                onScrapeComplete={handleImportComplete} 
+                initialUrl={initialScrapeUrl}
+            />
 
             {/* Event Structure Toggles */}
             <div className="flex flex-col gap-4 p-4 bg-zinc-900 rounded-lg border border-zinc-800">

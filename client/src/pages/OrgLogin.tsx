@@ -46,8 +46,10 @@ export default function OrgLogin() {
                 return;
             }
 
-            // Login successful - redirect to organizer dashboard
-            navigate("/organizers/dashboard");
+            // Login successful - redirect to organizer dashboard or preserved location
+            const state = location.state as { from?: { pathname: string; search: string } } | null;
+            const from = state?.from ? state.from.pathname + state.from.search : "/organizers/dashboard";
+            navigate(from, { replace: true });
         } catch (err) {
             setError("An unexpected error occurred");
             console.error("Login error:", err);

@@ -139,6 +139,18 @@ export default function AdminExternalEvents() {
                                         <FaTrash />
                                     </button>
                                 </div>
+                                
+                                <button
+                                    onClick={() => {
+                                        const link = `${window.location.origin}/organizers/event/create?import_url=${encodeURIComponent(event.link)}`;
+                                        navigator.clipboard.writeText(link);
+                                        setMessage({ type: 'success', text: "Invite link copied to clipboard!" });
+                                        setTimeout(() => setMessage(null), 3000);
+                                    }}
+                                    className="text-sm text-accent hover:text-white underline mt-1 block w-fit"
+                                >
+                                    Copy Invite Link
+                                </button>
 
                                 <div className="flex flex-wrap gap-4 text-sm text-gray-400">
                                     <span className="flex items-center gap-1">

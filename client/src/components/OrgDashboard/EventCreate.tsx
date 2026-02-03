@@ -1,6 +1,6 @@
 // client/src/pages/organizer/EventCreate.tsx
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import EventBasicInfo from "./EventBasicInfo";
 import EventCategories from "./EventCategories";
 import EventSegments from "./EventSegments";
@@ -26,6 +26,7 @@ interface Segment {
     registrationDeadline: string;
     minTeamSize?: number;
     maxTeamSize?: number;
+    registrationFee?: number;
 }
 
 export default function EventCreate() {
@@ -33,6 +34,16 @@ export default function EventCreate() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const importUrl = searchParams.get("import_url");
+    const [activeImportUrl, setActiveImportUrl] = useState<string | null>(importUrl);
+
+    // If importUrl changes (e.g. navigation), update activeImportUrl
+    // But only if we haven't processed it yet? 
+    // Actually, simpler: just initialize state. If we navigate away and back, it resets.
+    // That's fine. The issue is switching tabs *within* the component.
+    // So useState(importUrl) is correct for initialization.
+    // But we need to clear it after import.
 
     // Form state for basic info
     const [basicInfo, setBasicInfo] = useState({
@@ -146,6 +157,9 @@ export default function EventCreate() {
 
     // Add this function to handle import completion
     const handleImportComplete = (data: any) => {
+        // Clear the auto-import URL so it doesn't trigger again on tab switch
+        setActiveImportUrl(null);
+
         // Update basic info with imported data
         setBasicInfo((prev) => ({
             ...prev,
@@ -702,7 +716,14 @@ export default function EventCreate() {
                                 bannerUrl={bannerUrl}
                                 onBasicInfoChange={handleBasicInfoChange}
                                 onBannerChange={handleBannerChange}
-                                onImportComplete={handleImportComplete}
+                                onImportComplete={(data) => {
+                                    handleImportComplete(data);
+                                    // Clear the import param so it doesn't trigger again
+                                    // We can just rely on internal state of EventBasicInfo/FacebookImport if we pass a flag
+                                    // actually cleaner to just clear it from the prop we pass
+                                    // but we can't mutate the prop directly
+                                    // So we'll use a local state initialized from the param
+                                }}
                                 errors={basicInfoErrors}
                                 isOnline={isOnline}
                                 onIsOnlineChange={setIsOnline}
@@ -710,6 +731,7 @@ export default function EventCreate() {
                                 onHasMultipleSegmentsChange={setHasMultipleSegments}
                                 singleSegmentData={singleSegmentData}
                                 onSingleSegmentChange={handleSingleSegmentChange}
+                                initialScrapeUrl={activeImportUrl}
                             />
                         )}
 
