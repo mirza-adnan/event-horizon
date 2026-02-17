@@ -67,12 +67,29 @@ export default function EventsList() {
     }
 
     // Group events by status
+    // Helper to check if event is past
+    const isEventPast = (event: Event) => {
+        const targetDateStr = event.endDate || event.startDate;
+        if (!targetDateStr) return false;
+        
+        // Create date objects
+        const targetDate = new Date(targetDateStr);
+        const now = new Date();
+
+        // If it has a specific time (ISO string), precise comparison
+        // If it's just a date (YYYY-MM-DD), usually we treat "today" as ongoing.
+        // But assuming standard Date parsing, let's just do direct comparison.
+        // If target < now, it's past.
+        return targetDate < now;
+    };
+
+    // Group events by status
     const publishedEvents = events.filter(
-        (event) => event.status === "published"
+        (event) => event.status === "published" && !isEventPast(event)
     );
     const draftEvents = events.filter((event) => event.status === "draft");
     const completedEvents = events.filter(
-        (event) => event.status === "completed"
+        (event) => event.status === "completed" || (event.status === "published" && isEventPast(event))
     );
 
     return (
@@ -176,6 +193,14 @@ function EventCard({ event }: EventCardProps) {
         ? `/organizers/event/manage/${event.id}` 
         : `/organizers/event/edit/${event.id}`;
 
+    const isEventPast = (event: Event) => {
+        const targetDateStr = event.endDate || event.startDate;
+        if (!targetDateStr) return false;
+        return new Date(targetDateStr) < new Date();
+    };
+
+    const displayStatus = (event.status === "published" && isEventPast(event)) ? "completed" : event.status;
+
     return (
         <Link
             to={targetLink}
@@ -201,15 +226,15 @@ function EventCard({ event }: EventCardProps) {
                         </h3>
                         <span
                             className={`px-2 py-1 rounded-full text-xs ${
-                                event.status === "published"
+                                displayStatus === "published"
                                     ? "bg-green-500/20 text-green-400"
-                                    : event.status === "draft"
+                                    : displayStatus === "draft"
                                     ? "bg-yellow-500/20 text-yellow-400"
                                     : "bg-blue-500/20 text-blue-400"
                             }`}
                         >
-                            {event.status.charAt(0).toUpperCase() +
-                                event.status.slice(1)}
+                            {displayStatus.charAt(0).toUpperCase() +
+                                displayStatus.slice(1)}
                         </span>
                     </div>
                     <p className="text-sm text-text-weak line-clamp-2 mb-3">
