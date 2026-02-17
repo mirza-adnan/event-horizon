@@ -21,6 +21,9 @@ const generateSlug = (title: string) => {
 
 export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
     try {
+        // 0. Cleanup: Delete past external events
+        await db.delete(externalEventsTable).where(sql`${externalEventsTable.startDate} < NOW()`);
+
         console.log("Starting scrape and seed...");
         const rawEvents = await scrapeFacebookEvents();
 
@@ -34,14 +37,47 @@ export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
             return res.json({ message: "No events found to process", added: 0 });
         }
 
-        // 2. Limit for LLM (as per previous request)
-        const eventsToProcess = filteredRawEvents.slice(0, 10);
+        // 2. Filter out duplicates (events already in DB)
+        const existingSlugs = await db
+            .select({ slug: externalEventsTable.slug })
+            .from(externalEventsTable);
+        const existingSlugSet = new Set(existingSlugs.map((e) => e.slug));
 
-        // 3. Groq LLM Processing
+        // Note: We need to generate a slug to check against DB one-to-one.
+        // Since we don't have the final slug yet (LLM cleans title), we can try to filter by Link if available,
+        // or just rely on a "best guess" slug from the raw title.
+        // Better: Filter by Link since that is unique and extracted directly.
+        
+        const existingLinks = await db
+            .select({ link: externalEventsTable.link })
+            .from(externalEventsTable);
+        const existingLinkSet = new Set(existingLinks.map((e) => e.link));
+
+        const uniqueEvents = filteredRawEvents.filter((e: any) => {
+             // Check Link
+             if (existingLinkSet.has(e.link)) return false;
+             
+             // Check Slug (Basic version)
+             const rawSlug = generateSlug(e.title);
+             if (existingSlugSet.has(rawSlug)) return false;
+
+             return true;
+        });
+
+        console.log(`Filtered duplicates. Raw: ${filteredRawEvents.length}, Unique: ${uniqueEvents.length}`);
+
+        if (uniqueEvents.length === 0) {
+            return res.json({ message: "No new events found", added: 0 });
+        }
+
+        // 3. Limit for LLM (Increased to 15)
+        const eventsToProcess = uniqueEvents.slice(0, 15);
+
+        // 4. Groq LLM Processing
         const prompt = `
         You are an intelligent event assistant.
         Refine the following list of events.
-       
+        
         TASKS:
         1. Filter for PRODUCTIVE events only: competitions, hackathons, fests, seminars, workshops, olympiads, conferences, research, networking, career. Discard purely casual parties or unrelated listings.
         2. Format the date into a JavaScript acceptable Date string (ISO 8601 preferred) based on the current year 2026. Use context like "Sat, 23 Oct" -> "2026-10-23".
@@ -121,7 +157,7 @@ export const scrapeAndSeedEvents = async (req: Request, res: Response) => {
                     imageUrl: event.imageUrl,
                     location: event.location,
                     isOnline: event.isOnline || false,
-                    link: event.link,
+                    link: event.link.replace('web.facebook.com', 'www.facebook.com'),
                     categories: event.categories || [],
                     clicks: 0,
                     hovers: 0,
@@ -207,6 +243,8 @@ export const getAllExternalEvents = async (req: Request, res: Response) => {
             categories: externalEventsTable.categories,
             latitude: externalEventsTable.latitude,
             longitude: externalEventsTable.longitude,
+            clicks: externalEventsTable.clicks,
+            hovers: externalEventsTable.hovers,
         };
         if (distanceExpr) selection.distance = distanceExpr;
         if (similarityExpr) selection.similarity = similarityExpr;
@@ -225,12 +263,14 @@ export const getAllExternalEvents = async (req: Request, res: Response) => {
              conditions.push(sql`${externalEventsTable.categories} ?| ${categoryNames}`);
         }
 
-        // 3. Distance Filter (Strictly for physical events when proximity filter is on)
         if (distanceExpr && searchRadius) {
             conditions.push(sql`${distanceExpr} <= ${searchRadius}`);
         }
 
-        // 4. Ranking
+        // 4. Time Filter: Only upcoming events
+        conditions.push(sql`${externalEventsTable.startDate} >= NOW()`);
+
+        // 5. Ranking
         let orderBy = [];
         if (similarityExpr && distanceExpr) {
             // Blend interest similarity (70%) with proximity (30%) only for events that have coordinates.
