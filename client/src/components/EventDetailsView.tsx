@@ -1,12 +1,27 @@
 import { useState } from "react";
 import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaInfoCircle, FaThList, FaRss, FaBell } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import AnnouncementFeed from "./EventManagement/AnnouncementFeed";
 import EventActionMenu from "./EventActionMenu";
 import { cn } from "../utils/helpers";
 
+// Fix for Leaflet default icon not appearing correctly in React/Vite
+import icon from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
+
 interface Segment {
-// ... (rest of Segment and Event interfaces)
     id: string | number;
     name: string;
     description: string;
@@ -15,6 +30,11 @@ interface Segment {
     isTeamSegment: boolean;
     registrationFee?: number;
     categoryId?: string;
+    minTeamSize?: number;
+    maxTeamSize?: number;
+    capacity: number;
+    isOnline: boolean;
+    registrationDeadline?: string;
 }
 
 export interface Event {
@@ -27,6 +47,7 @@ export interface Event {
     location?: string;
     address: string;
     city: string;
+    country: string;
     isOnline: boolean;
     segments: Segment[];
     organizer: {
@@ -34,6 +55,8 @@ export interface Event {
         name: string;
     };
     eventCategories?: string[];
+    latitude?: number;
+    longitude?: number;
 }
 
 interface EventDetailsViewProps {
@@ -157,7 +180,7 @@ export default function EventDetailsView({ event, user, registeredSegmentIds = [
                                          <div key={segment.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 transition-colors hover:border-zinc-700">
                                              <div className="flex justify-between items-start mb-4">
                                                  <div>
-                                                     <h3 className="text-xl font-bold text-white mb-2">{segment.name}</h3>
+                                                     <h3 className="text-xl font-bold text-white mb-2">{event.segments.length === 1 ? event.title : segment.name}</h3>
                                                      <div className="flex gap-3 text-sm">
                                                          {segment.isTeamSegment ? (
                                                              <span className="flex items-center gap-1 text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded">
@@ -281,6 +304,46 @@ export default function EventDetailsView({ event, user, registeredSegmentIds = [
                             </div>
                         </div>
                     </div>
+
+                    {/* Location Map */}
+                    {event.latitude && event.longitude && (
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-lg">
+                            <div className="p-4 border-b border-zinc-800">
+                                <h3 className="font-semibold text-white flex items-center gap-2">
+                                    <FaMapMarkerAlt className="text-accent" /> Location
+                                </h3>
+                                <p className="text-sm text-gray-400 mt-1">{event.address}, {event.city}</p>
+                            </div>
+                            <div className="h-64 w-full relative z-0">
+                                <MapContainer 
+                                    center={[event.latitude, event.longitude]} 
+                                    zoom={15} 
+                                    scrollWheelZoom={false}
+                                    style={{ height: "100%", width: "100%" }}
+                                >
+                                    <TileLayer
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    <Marker position={[event.latitude, event.longitude]}>
+                                        <Popup>
+                                            {event.title} <br /> {event.address}
+                                        </Popup>
+                                    </Marker>
+                                </MapContainer>
+                            </div>
+                            <div className="p-2 bg-zinc-950/50 text-center">
+                                <a 
+                                    href={`https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="text-xs text-accent hover:underline"
+                                >
+                                    Open in Google Maps
+                                </a>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
