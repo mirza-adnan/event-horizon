@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { and, eq, or, sql } from "drizzle-orm";
 import db from "../db";
 import { bookmarksTable, eventsTable, externalEventsTable } from "../db/schema";
+import { updateUserInterest } from "../utils/user-interests";
 
 export const toggleBookmark = async (req: Request, res: Response) => {
     try {
@@ -28,6 +29,29 @@ export const toggleBookmark = async (req: Request, res: Response) => {
                 userId,
                 eventId
             });
+
+            // --- Interest Tracking (Medium Weight) ---
+            try {
+                // Fetch event details
+                const [event] = await db.select().from(eventsTable).where(eq(eventsTable.id, eventId));
+                
+                // Fetch categories
+                // (We could import eventCategoriesTable, but let's just stick to title/desc for bookmark speed)
+                // or do a quick join if strictly needed. 
+                // Let's keep it reasonably fast: Title + Desc is good.
+                
+                if (event) {
+                    const titlePart = (event.title + " ").repeat(2);
+                    const textToEmbed = `${titlePart}\n${event.description || ""}`;
+                    
+                    // Weight: 0.3 (Medium)
+                    await updateUserInterest(userId, textToEmbed, 0.3, "BOOKMARK");
+                }
+            } catch (e) {
+                console.error("Failed to track bookmark interest", e);
+            }
+            // -----------------------------------------
+
             return res.status(201).json({ message: "Bookmark added", status: "added" });
         }
     } catch (error) {

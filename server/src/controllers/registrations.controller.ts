@@ -10,6 +10,7 @@ import {
     usersTable,
 } from "../db/schema";
 import { NewRegistration } from "../db/schema";
+import { updateUserInterest } from "../utils/user-interests";
 
 // Create Registration
 export const createRegistration = async (req: Request, res: Response) => {
@@ -95,6 +96,25 @@ export const createRegistration = async (req: Request, res: Response) => {
                 data
             } as NewRegistration).returning();
 
+            // --- Interest Tracking (High Weight) ---
+            try {
+                // Construct rich text for embedding
+                const titlePart = (segment.name + " ").repeat(2); 
+                // We need event details too for better context
+                const [event] = await db.select({ title: eventsTable.title, description: eventsTable.description }).from(eventsTable).where(eq(eventsTable.id, eventId));
+                
+                const eventTitlePart = event ? (event.title + " ") : "";
+                const categoryPart = segment.categoryId ? (segment.categoryId + " ").repeat(3) : "";
+                
+                const textToEmbed = `${titlePart}\n${eventTitlePart}\n${categoryPart}\n${segment.description || ""}\n${event?.description || ""}`;
+                
+                // Weight: 0.5 (Highest)
+                await updateUserInterest(userId, textToEmbed, 0.5, "REGISTRATION");
+            } catch (err) {
+                console.error("Failed to track registration interest", err);
+            }
+            // ---------------------------------------
+
             return res.status(201).json({ message: "Team registration successful", registration: reg });
 
         } else {
@@ -157,6 +177,24 @@ export const createRegistration = async (req: Request, res: Response) => {
                 paymentStatus: "unpaid",
                 data
             } as NewRegistration).returning();
+
+            // --- Interest Tracking (High Weight) ---
+            try {
+                // Construct rich text for embedding (Same as above, could refactor but keeping inline for now)
+                const titlePart = (segment.name + " ").repeat(2); 
+                const [event] = await db.select({ title: eventsTable.title, description: eventsTable.description }).from(eventsTable).where(eq(eventsTable.id, eventId));
+                
+                const eventTitlePart = event ? (event.title + " ") : "";
+                const categoryPart = segment.categoryId ? (segment.categoryId + " ").repeat(3) : "";
+                
+                const textToEmbed = `${titlePart}\n${eventTitlePart}\n${categoryPart}\n${segment.description || ""}\n${event?.description || ""}`;
+                
+                // Weight: 0.5 (Highest)
+                await updateUserInterest(userId, textToEmbed, 0.5, "REGISTRATION");
+            } catch (err) {
+                console.error("Failed to track registration interest", err);
+            }
+            // ---------------------------------------
 
             return res.status(201).json({ message: "Registration successful", registration: reg });
         }

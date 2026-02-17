@@ -18,6 +18,7 @@ import puppeteer, { type ElementHandle } from "puppeteer";
 import { scrapeEventsWithoutLogin, scrapeFacebookEvents } from "../utils/scraper";
 import CATEGORIES from "../utils/categories";
 import { generateEmbedding } from "../utils/embeddings";
+import { updateUserInterest } from "../utils/user-interests";
 import { sql } from "drizzle-orm";
 
 export const createEvent = async (req: Request, res: Response) => {
@@ -1074,32 +1075,11 @@ export const trackInterest = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Event or Segment not found" });
         }
 
-        const interestEmbedding = await generateEmbedding(contentToEmbed);
+        const textToEmbed = contentToEmbed;
 
-        const [user] = await db
-            .select({ embedding: usersTable.embedding })
-            .from(usersTable)
-            .where(eq(usersTable.id, userId));
-
-        let finalEmbedding: number[];
-
-        if (user?.embedding) {
-            // Weighted moving average: 0.7 * old + 0.3 * new
-            finalEmbedding = user.embedding.map((val, i) => (val * 0.7) + (interestEmbedding[i] * 0.3));
-            
-            // Normalize the vector
-            const magnitude = Math.sqrt(finalEmbedding.reduce((sum, val) => sum + val * val, 0));
-            if (magnitude > 0) {
-                finalEmbedding = finalEmbedding.map(val => val / magnitude);
-            }
-        } else {
-            finalEmbedding = interestEmbedding;
-        }
-
-        await db
-            .update(usersTable)
-            .set({ embedding: finalEmbedding })
-            .where(eq(usersTable.id, userId));
+        // Weight: 0.1 (Low - View Duration / Click)
+        // Note: The frontend sends this after 20s of active view
+        await updateUserInterest(userId, textToEmbed, 0.1, "VIEW_DURATION_20S");
 
         res.json({ message: "Interest tracked successfully" });
     } catch (error: any) {

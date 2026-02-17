@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { FaSpinner } from "react-icons/fa";
 import { useUserAuth } from "../hooks/useUserAuth";
@@ -15,13 +15,54 @@ export default function EventDetails() {
     const [selectedSegment, setSelectedSegment] = useState<any | null>(null);
     const [registeredSegmentIds, setRegisteredSegmentIds] = useState<string[]>([]);
 
+    const [activeTime, setActiveTime] = useState(0);
+    const lastActivityRef = useRef(Date.now());
+    const trackedRef = useRef(false);
+
     useEffect(() => {
         fetchEventDetails();
         if (user) {
             fetchRegistrationStatus();
-            trackInterest();
         }
     }, [id, user]);
+
+    // Active View Tracking
+    useEffect(() => {
+        if (!user) return;
+
+        const handleActivity = () => {
+            lastActivityRef.current = Date.now();
+        };
+
+        window.addEventListener("mousemove", handleActivity);
+        window.addEventListener("keydown", handleActivity);
+        window.addEventListener("scroll", handleActivity);
+        window.addEventListener("click", handleActivity);
+
+        const interval = setInterval(() => {
+            // If last activity was within 5 seconds, count as active
+            if (Date.now() - lastActivityRef.current < 5000) {
+                setActiveTime(prev => prev + 1);
+            }
+        }, 1000);
+
+        return () => {
+            window.removeEventListener("mousemove", handleActivity);
+            window.removeEventListener("keydown", handleActivity);
+            window.removeEventListener("scroll", handleActivity);
+            window.removeEventListener("click", handleActivity);
+            clearInterval(interval);
+        };
+    }, [user]);
+
+    // Trigger interest tracking after 20s active time
+    useEffect(() => {
+        if (activeTime >= 20 && !trackedRef.current && user && id) {
+            console.log("User has been active for 20s, tracking interest...");
+            trackedRef.current = true;
+            trackInterest();
+        }
+    }, [activeTime, user, id]);
 
     const trackInterest = async () => {
         try {

@@ -5,6 +5,7 @@ import { eq, desc, and, or, asc, type SQL } from "drizzle-orm";
 import { scrapeEventsWithoutLogin, scrapeFacebookEvents } from "../utils/scraper";
 import CATEGORIES from "../utils/categories";
 import { generateEmbedding } from "../utils/embeddings";
+import { updateUserInterest } from "../utils/user-interests";
 import { sql } from "drizzle-orm";
 import { Groq } from "groq-sdk";
 
@@ -321,6 +322,7 @@ export const trackEventStats = async (req: Request, res: Response) => {
             );
 
             // PERSONALIZATION: If userId is provided, update user interest embedding
+            // Weight: 0.1 (Low - External Click)
             if (userId) {
                 try {
                     const [event] = await db
@@ -331,27 +333,9 @@ export const trackEventStats = async (req: Request, res: Response) => {
                     if (event) {
                         const titlePart = (event.title + " ").repeat(2);
                         const categoryPart = event.categories ? (event.categories.join(", ") + " ").repeat(3) : "";
-                        const contentToEmbed = `${titlePart}\n${categoryPart}\n${event.description || ""}`;
-                        const interestEmbedding = await generateEmbedding(contentToEmbed);
-
-                        const [user] = await db
-                            .select({ embedding: usersTable.embedding })
-                            .from(usersTable)
-                            .where(eq(usersTable.id, userId));
-
-                        let finalEmbedding: number[];
-                        if (user?.embedding) {
-                            // Weighted moving average: 0.7 * old + 0.3 * new
-                            finalEmbedding = user.embedding.map((val: number, i: number) => (val * 0.7) + (interestEmbedding[i] * 0.3));
-                            const magnitude = Math.sqrt(finalEmbedding.reduce((sum, val) => sum + val * val, 0));
-                            if (magnitude > 0) {
-                                finalEmbedding = finalEmbedding.map(val => val / magnitude);
-                            }
-                        } else {
-                            finalEmbedding = interestEmbedding;
-                        }
-
-                        await db.update(usersTable).set({ embedding: finalEmbedding }).where(eq(usersTable.id, userId));
+                        const textToEmbed = `${titlePart}\n${categoryPart}\n${event.description || ""}`;
+                        
+                        await updateUserInterest(userId, textToEmbed, 0.1, "EXTERNAL_CLICK");
                     }
                 } catch (interestError) {
                     console.error("Failed to update user interest from external click:", interestError);
