@@ -360,3 +360,53 @@ export const getEventRegistrants = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Failed to fetch registrations" });
     }
 };
+
+// Mock Payment (for demo purposes)
+export const mockPay = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).userId;
+
+        // Verify ownership (just check if user is the registrant)
+        // In real app, we'd verify team leader too if it's a team registration
+        const [reg] = await db
+            .select()
+            .from(registrationsTable)
+            .where(eq(registrationsTable.id, id));
+
+        if (!reg) {
+            return res.status(404).json({ message: "Registration not found" });
+        }
+
+        // Simple ownership check: either the user is the registrant OR the user is the team leader of the registered team
+        let isAuthorized = false;
+        if (reg.userId === userId) {
+            isAuthorized = true;
+        } else if (reg.teamId) {
+            const [team] = await db.select().from(teamsTable).where(eq(teamsTable.id, reg.teamId));
+            if (team && team.leaderId === userId) {
+                isAuthorized = true;
+            }
+        }
+
+        // If neither, fail
+        if (!isAuthorized) {
+            return res.status(403).json({ message: "Unauthorized to pay for this registration" });
+        }
+
+        // Update status
+        await db
+            .update(registrationsTable)
+            .set({ 
+                paymentStatus: "paid",
+                status: "approved" // Auto-approve on payment for demo
+            })
+            .where(eq(registrationsTable.id, id));
+
+        res.json({ message: "Payment successful" });
+
+    } catch (error) {
+        console.error("Mock payment error:", error);
+        res.status(500).json({ message: "Payment failed" });
+    }
+};

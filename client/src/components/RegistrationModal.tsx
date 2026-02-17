@@ -46,6 +46,11 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
         }
     };
 
+    // Mock Payment Step
+    const [isPaymentStep, setIsPaymentStep] = useState(false);
+    const [paymentProcessing, setPaymentProcessing] = useState(false);
+    const [tempRegId, setTempRegId] = useState<string | null>(null);
+
     const handleRegister = async () => {
         setLoading(true);
         setError(null);
@@ -66,6 +71,7 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
         }
 
         try {
+            // 1. Create Registration (unpaid)
             const res = await fetch("http://localhost:5050/api/registrations/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -74,16 +80,52 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
             });
 
             if (res.ok) {
-                setStep(2); // Success
+                const data = await res.json();
+                
+                // Check if payment is needed
+                if (segment.registrationFee && segment.registrationFee > 0) {
+                    setTempRegId(data.registration.id);
+                    setIsPaymentStep(true);
+                    setLoading(false);
+                } else {
+                    setStep(2); // Success (Free)
+                    setLoading(false);
+                }
             } else {
                 const data = await res.json();
                 setError(data.message || "Registration failed");
+                setLoading(false);
             }
         } catch (err) {
             setError("Network error occurred");
-        } finally {
             setLoading(false);
         }
+    };
+
+    const handleMockPayment = async () => {
+        if (!tempRegId) return;
+        setPaymentProcessing(true);
+
+        // Simulate delay
+        setTimeout(async () => {
+            try {
+                const res = await fetch(`http://localhost:5050/api/registrations/${tempRegId}/pay-mock`, {
+                    method: "POST",
+                    credentials: "include"
+                });
+
+                if (res.ok) {
+                    setStep(2); // Success
+                    setIsPaymentStep(false);
+                } else {
+                    setError("Payment failed. Please try again.");
+                }
+            } catch (err) {
+                setError("Payment network error.");
+            } finally {
+                setPaymentProcessing(false);
+            }
+        }, 2000);
     };
 
     if (!isOpen) return null;
@@ -99,7 +141,7 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
                 </button>
 
                 <div className="p-8">
-                    {step === 1 ? (
+                    {step === 1 && !isPaymentStep ? (
                         <>
                             <h2 className="text-2xl font-bold text-white mb-2">Registration</h2>
                             <p className="text-gray-400 mb-6">
@@ -147,13 +189,52 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
                                 </div>
                             )}
 
+                            {/* Fee Display */}
+                            {segment.registrationFee > 0 && (
+                                <div className="mb-8 p-4 bg-accent/10 border border-accent/20 rounded-lg flex justify-between items-center">
+                                    <span className="text-gray-300">Registration Fee</span>
+                                    <span className="text-xl font-bold text-accent">৳{segment.registrationFee}</span>
+                                </div>
+                            )}
+
                             <button
                                 onClick={handleRegister}
                                 disabled={loading || (segment.isTeamSegment && myTeams.length === 0)}
                                 className="w-full bg-accent text-black font-bold py-3 rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {loading ? "Processing..." : "Confirm Registration"}
+                                {loading ? "Processing..." : (segment.registrationFee > 0 ? "Proceed to Payment" : "Confirm Registration")}
                             </button>
+                        </>
+                    ) : isPaymentStep ? (
+                        <>
+                            <h2 className="text-2xl font-bold text-white mb-2">Payment Required</h2>
+                            <p className="text-gray-400 mb-6">
+                                Please pay <span className="text-accent font-bold">৳{segment.registrationFee}</span> to complete your registration.
+                            </p>
+
+                            {/* Mock Payment Gateway UI */}
+                            <div className="bg-zinc-800 p-6 rounded-xl border border-zinc-700 mb-8 text-center">
+                                {paymentProcessing ? (
+                                    <div className="py-8">
+                                        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                        <p className="text-white font-medium animate-pulse">Processing Payment...</p>
+                                        <p className="text-xs text-gray-500 mt-2">Connecting to secure gateway</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="p-3 bg-zinc-900 rounded border border-zinc-700 cursor-pointer hover:border-accent transition-colors">
+                                            <p className="text-white font-bold">bKash / Nagad / Card</p>
+                                            <p className="text-xs text-gray-500">Secure Payment Gateway</p>
+                                        </div>
+                                        <button
+                                            onClick={handleMockPayment}
+                                            className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 transition-colors shadow-lg shadow-green-900/20"
+                                        >
+                                            Pay Now
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </>
                     ) : (
                         <div className="text-center py-6">
@@ -162,7 +243,7 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
                             </div>
                             <h2 className="text-2xl font-bold text-white mb-2">Registration Successful!</h2>
                             <p className="text-gray-400 mb-8">
-                                You have successfully registered for {segment.name}.
+                                {segment.registrationFee > 0 ? "Payment received. " : ""}You have successfully registered for {segment.name}.
                             </p>
                             <button
                                 onClick={onClose}
