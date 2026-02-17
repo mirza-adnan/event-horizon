@@ -92,19 +92,21 @@ export default function UserSidebar({ user, onLogout }: UserSidebarProps) {
 
             {/* User Profile & Logout */}
             <div className="p-4 border-t border-zinc-900">
-                <div className="bg-zinc-900/50 rounded-xl p-3 flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-700">
-                        {user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
-                        ) : (
-                            <FaUser className="text-zinc-500" />
-                        )}
+                <Link to={`/user/${user.id}`}>
+                    <div className="bg-zinc-900/50 rounded-xl p-3 flex items-center gap-3 mb-3 hover:bg-zinc-800/50 transition-colors group">
+                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-700 group-hover:border-accent/50 transition-colors">
+                            {user.avatarUrl ? (
+                                <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+                            ) : (
+                                <FaUser className="text-zinc-500 group-hover:text-accent transition-colors" />
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium text-sm truncate group-hover:text-accent transition-colors">{user.firstName} {user.lastName}</p>
+                            <p className="text-zinc-500 text-xs truncate">@{user.username}</p>
+                        </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium text-sm truncate">{user.firstName} {user.lastName}</p>
-                        <p className="text-zinc-500 text-xs truncate">@{user.username}</p>
-                    </div>
-                </div>
+                </Link>
                 
                 <button
                     onClick={onLogout}

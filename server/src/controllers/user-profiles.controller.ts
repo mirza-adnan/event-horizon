@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import db from "../db";
-import { usersTable, registrationsTable, eventsTable } from "../db/schema";
+import { usersTable, registrationsTable, eventsTable, segmentsTable } from "../db/schema";
 import { eq, and, gte, lt, desc, asc, or, ilike } from "drizzle-orm";
 
 export const getUserProfile = async (req: Request, res: Response) => {
@@ -25,7 +25,8 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
         const now = new Date();
 
-        // Get registrations with event details
+        // Get registrations with event and segment details
+        // We left join segments because segmentId might be null (whole event registration)
         const registrations = await db
             .select({
                 registrationId: registrationsTable.id,
@@ -37,20 +38,36 @@ export const getUserProfile = async (req: Request, res: Response) => {
                     startDate: eventsTable.startDate,
                     city: eventsTable.city,
                     isOnline: eventsTable.isOnline,
+                },
+                segment: {
+                    id: segmentsTable.id,
+                    name: segmentsTable.name,
                 }
             })
             .from(registrationsTable)
             .innerJoin(eventsTable, eq(registrationsTable.eventId, eventsTable.id))
+            .leftJoin(segmentsTable, eq(registrationsTable.segmentId, segmentsTable.id))
             .where(eq(registrationsTable.userId, id));
+
+        const formatEvent = (r: any) => {
+            let title = r.event.title;
+            if (r.segment && r.segment.id) {
+                title = `${r.segment.name} | ${r.event.title}`;
+            }
+            return {
+                ...r.event,
+                title,
+            };
+        };
 
         const upcomingEvents = registrations
             .filter(r => new Date(r.event.startDate) >= now && r.status === 'approved')
-            .map(r => r.event)
+            .map(formatEvent)
             .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
         const pastEvents = registrations
             .filter(r => new Date(r.event.startDate) < now)
-            .map(r => r.event)
+            .map(formatEvent)
             .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
 
         res.json({

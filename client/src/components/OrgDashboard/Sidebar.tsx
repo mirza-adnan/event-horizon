@@ -116,16 +116,18 @@ export default function Sidebar() {
             {/* Header */}
             <div className="p-6 border-b border-zinc-800">
                 <div className="flex flex-col space-y-2">
-                    <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-accent rounded flex items-center justify-center">
-                            <span className="text-black font-bold text-sm">
-                                O
-                            </span>
+                    <Link to={organizer ? `/organizer/${organizer.id}` : "#"} className="group">
+                        <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-accent rounded flex items-center justify-center group-hover:bg-accent/80 transition-colors">
+                                <span className="text-black font-bold text-sm">
+                                    O
+                                </span>
+                            </div>
+                            <h1 className="text-lg font-semibold group-hover:text-accent transition-colors">
+                                {organizer?.name || "Organizer"}
+                            </h1>
                         </div>
-                        <h1 className="text-lg font-semibold">
-                            {organizer?.name || "Organizer"}
-                        </h1>
-                    </div>
+                    </Link>
                     <p className="text-xs text-text-weak truncate">
                         {organizer?.email}
                     </p>
