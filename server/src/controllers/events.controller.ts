@@ -752,8 +752,12 @@ export const scrapeFacebookEvent = async (req: any, res: any) => {
                                     "description": "Details",
                                     "startTime": "YYYY-MM-DDTHH:mm:00.000Z" (ISO),
                                     "endTime": "YYYY-MM-DDTHH:mm:00.000Z" (ISO),
-                                    "isOnline": boolean
-                                    "category": one slug from the list
+                                    "isOnline": boolean,
+                                    "category": one slug from the list,
+                                    "registrationFee": number (default 0),
+                                    "isTeamSegment": boolean,
+                                    "minTeamSize": number (default 1),
+                                    "maxTeamSize": number (default 1)
                                 }
                             ]
                         }
@@ -958,7 +962,10 @@ export const searchEvents = async (req: Request, res: Response) => {
             .from(eventsTable)
             .$dynamic();
 
-        const conditions = [eq(eventsTable.status, "published")];
+        const conditions = [
+            eq(eventsTable.status, "published"),
+            sql`${eventsTable.startDate} >= NOW()`, // Only upcoming events
+        ];
 
         if (similarityExpr && q) {
              conditions.push(sql`${similarityExpr} > 0.25`);

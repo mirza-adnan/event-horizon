@@ -77,7 +77,7 @@ export async function scrapeFacebookEvents() {
 
         // Scroll to load more items
         console.log("Scrolling to load events...");
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
             await page.evaluate(() => window.scrollBy(0, window.innerHeight));
             await new Promise((r) => setTimeout(r, 2000));
         }
