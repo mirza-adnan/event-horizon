@@ -6,6 +6,7 @@ interface Team {
     id: string;
     name: string;
     myRole: string;
+    userStatus?: "member" | "pending" | null;
 }
 
 interface InviteToTeamModalProps {
@@ -23,7 +24,7 @@ export default function InviteToTeamModal({ invitedUserId, invitedUserName, onCl
     useEffect(() => {
         const fetchMyTeams = async () => {
             try {
-                const res = await fetch("http://localhost:5050/api/teams/my", {
+                const res = await fetch(`http://localhost:5050/api/teams/my?forUserId=${invitedUserId}`, {
                     credentials: "include"
                 });
                 if (res.ok) {
@@ -39,7 +40,7 @@ export default function InviteToTeamModal({ invitedUserId, invitedUserName, onCl
         };
 
         fetchMyTeams();
-    }, []);
+    }, [invitedUserId]);
 
     const handleInvite = async (teamId: string) => {
         setInvitingTeamId(teamId);
@@ -54,6 +55,8 @@ export default function InviteToTeamModal({ invitedUserId, invitedUserName, onCl
             const data = await res.json();
             if (res.ok) {
                 setMessage({ type: "success", text: "Invite sent successfully!" });
+                // Update local state to reflect the pending status
+                setTeams(prev => prev.map(t => t.id === teamId ? { ...t, userStatus: "pending" as const } : t));
             } else {
                 setMessage({ type: "error", text: data.message || "Failed to send invite" });
             }
@@ -69,7 +72,7 @@ export default function InviteToTeamModal({ invitedUserId, invitedUserName, onCl
             <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                    <div>
+                    <div className="text-left">
                         <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
                             <FaUsers className="text-accent" />
                             Invite to Team
@@ -122,19 +125,29 @@ export default function InviteToTeamModal({ invitedUserId, invitedUserName, onCl
                                 >
                                     <div className="text-left">
                                         <h3 className="font-bold text-white text-sm group-hover:text-accent transition-colors">{team.name}</h3>
-                                        <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Team Lead</span>
+                                        {team.userStatus === 'member' ? (
+                                            <span className="text-[10px] text-green-500 uppercase tracking-wider font-bold">Already a Member</span>
+                                        ) : team.userStatus === 'pending' ? (
+                                            <span className="text-[10px] text-yellow-500 uppercase tracking-wider font-bold">Invite Pending</span>
+                                        ) : (
+                                            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Team Lead</span>
+                                        )}
                                     </div>
                                     <button
                                         onClick={() => handleInvite(team.id)}
-                                        disabled={invitingTeamId !== null}
+                                        disabled={invitingTeamId !== null || !!team.userStatus}
                                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                                            invitingTeamId === team.id
+                                            invitingTeamId === team.id || !!team.userStatus
                                                 ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
                                                 : "bg-accent text-black hover:scale-105 active:scale-95 shadow-lg shadow-accent/10"
                                         }`}
                                     >
                                         {invitingTeamId === team.id ? (
                                             <FaSpinner className="animate-spin" />
+                                        ) : team.userStatus === 'member' ? (
+                                            "Member"
+                                        ) : team.userStatus === 'pending' ? (
+                                            "Pending"
                                         ) : (
                                             "Send Invite"
                                         )}

@@ -20,6 +20,7 @@ import {
 export const getMyTeams = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
+        const { forUserId } = req.query;
 
         // Find all team memberships for the user
         const memberships = await db
@@ -41,13 +42,49 @@ export const getMyTeams = async (req: Request, res: Response) => {
 
         // Start to enrich team data with member counts etc?
         // For now just return basic info + role
-        const teamsWithRole = teams.map((team) => {
+        const teamsWithRole = await Promise.all(teams.map(async (team) => {
             const memberShip = memberships.find((m) => m.teamId === team.id);
+            
+            let userStatus = null;
+            if (forUserId && typeof forUserId === 'string') {
+                // 1. Check if forUserId is a member
+                const [existingMember] = await db
+                    .select()
+                    .from(teamMembersTable)
+                    .where(and(eq(teamMembersTable.teamId, team.id), eq(teamMembersTable.userId, forUserId)));
+                
+                if (existingMember) {
+                    userStatus = 'member';
+                } else {
+                    // 2. Check if pending invite exists
+                    const [invitedUser] = await db
+                        .select()
+                        .from(usersTable)
+                        .where(eq(usersTable.id, forUserId));
+                    
+                    if (invitedUser) {
+                        const [existingInvite] = await db
+                            .select()
+                            .from(teamInvitesTable)
+                            .where(and(
+                                eq(teamInvitesTable.teamId, team.id),
+                                eq(teamInvitesTable.email, invitedUser.email),
+                                eq(teamInvitesTable.status, "pending")
+                            ));
+                        
+                        if (existingInvite) {
+                            userStatus = 'pending';
+                        }
+                    }
+                }
+            }
+
             return {
                 ...team,
                 myRole: memberShip?.role,
+                userStatus
             };
-        });
+        }));
 
         res.json({ teams: teamsWithRole });
     } catch (error) {
