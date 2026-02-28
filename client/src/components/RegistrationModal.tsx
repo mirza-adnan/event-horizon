@@ -13,6 +13,8 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
     const [step, setStep] = useState(1); // 1: Selection, 2: Success
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [registrationCode, setRegistrationCode] = useState("");
+    const requiresCode = segment.id && event.constraints?.some((c: any) => c.type === "code" && (c.includedSegments.includes("all") || c.includedSegments.includes(segment.id)));
     
     // Team Logic
     const [myTeams, setMyTeams] = useState<any[]>([]);
@@ -58,7 +60,9 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
         const body: any = {
             eventId: event.id,
             segmentId: segment.id,
-            data: {} // Empty form data for now
+            data: {
+                ...(requiresCode ? { code: registrationCode } : {})
+            }
         };
 
         if (segment.isTeamSegment) {
@@ -186,6 +190,21 @@ export default function RegistrationModal({ isOpen, onClose, event, segment }: R
                                         <span className="text-white font-medium">Individual Participation</span>
                                     </div>
                                     <p className="text-sm text-gray-400">You are registering as an individual participant.</p>
+                                </div>
+                            )}
+
+                            {/* Registration Code Input */}
+                            {requiresCode && (
+                                <div className="space-y-2 mb-8">
+                                    <label className="block text-sm font-medium text-gray-300">Registration Code</label>
+                                    <input
+                                        type="text"
+                                        value={registrationCode}
+                                        onChange={(e) => setRegistrationCode(e.target.value)}
+                                        placeholder="Enter the required registration code"
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-accent outline-none"
+                                    />
+                                    <p className="text-xs text-gray-500">This event or segment requires a secret code to register.</p>
                                 </div>
                             )}
 
