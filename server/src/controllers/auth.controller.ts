@@ -13,7 +13,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"; // Fal
 
 export const signup = async (req: Request, res: Response) => {
     try {
-        const { email, password, dateOfBirth, firstName, lastName } = req.body;
+        const { email, password, dateOfBirth, firstName, lastName, gender, status, country } = req.body;
 
         if (!email || !password || !dateOfBirth || !firstName) {
             return res
@@ -45,6 +45,9 @@ export const signup = async (req: Request, res: Response) => {
                 dateOfBirth: dateOfBirth,
                 verified: false,
                 verificationToken,
+                gender: gender || "prefer_not_to_say",
+                status: status || null,
+                country: country || null,
             } as any) // Type might not be updated yet in IDE cache
             .returning();
         

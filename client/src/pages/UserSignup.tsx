@@ -13,6 +13,7 @@ export default function UserSignup() {
         dateOfBirth: "",
         country: "",
         status: "University",
+        gender: "prefer_not_to_say",
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export default function UserSignup() {
                         dateOfBirth: formData.dateOfBirth,
                         country: formData.country,
                         status: formData.status,
+                        gender: formData.gender,
                     }),
                 }
             );
@@ -188,22 +190,42 @@ export default function UserSignup() {
                         />
                     </div>
 
-                    {/* Status Dropdown */}
-                    <div className="space-y-2">
-                        <label className="block ml-1">Status</label>
-                        <select
-                            value={formData.status}
-                            onChange={(e) =>
-                                handleInputChange("status", e.target.value)
-                            }
-                            className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
-                        >
-                            <option value="School">School</option>
-                            <option value="High School">High School</option>
-                            <option value="University">University</option>
-                            <option value="Graduate">Graduate</option>
-                            <option value="Other">Other</option>
-                        </select>
+                    {/* Gender & Status */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Gender Dropdown */}
+                        <div className="space-y-2">
+                            <label className="block ml-1">Gender</label>
+                            <select
+                                value={formData.gender}
+                                onChange={(e) =>
+                                    handleInputChange("gender", e.target.value)
+                                }
+                                className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
+                            >
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                                <option value="prefer_not_to_say">Prefer not to say</option>
+                            </select>
+                        </div>
+                        
+                        {/* Status Dropdown */}
+                        <div className="space-y-2">
+                            <label className="block ml-1">Status</label>
+                            <select
+                                value={formData.status}
+                                onChange={(e) =>
+                                    handleInputChange("status", e.target.value)
+                                }
+                                className="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white border-none outline-none ring-1 ring-[#373737] focus:ring-accent"
+                            >
+                                <option value="School">School</option>
+                                <option value="High School">High School</option>
+                                <option value="University">University</option>
+                                <option value="Graduate">Graduate</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
                     </div>
 
                     {/* Submit Button */}
