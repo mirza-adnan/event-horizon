@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import EventBasicInfo from "./EventBasicInfo";
 import EventCategories from "./EventCategories";
 import EventSegments from "./EventSegments";
+import EventConstraints from "./EventConstraints";
 import { cn } from "../../utils/helpers";
 import EventDetailsView from "../EventDetailsView";
 
@@ -72,6 +73,9 @@ export default function EventCreate() {
     // Form state for segments
     const [segments, setSegments] = useState<Segment[]>([]);
 
+    // Form state for constraints
+    const [constraints, setConstraints] = useState<any[]>([]);
+
     // New States for Refactor
     const { id } = useParams();
     const isEditMode = Boolean(id);
@@ -137,6 +141,10 @@ export default function EventCreate() {
                                 registrationDeadline: seg.registrationDeadline ? seg.registrationDeadline.split("T")[0] : ""
                              })));
                         }
+                    }
+
+                    if (e.constraints) {
+                        setConstraints(e.constraints);
                     }
                 }
              } catch (err) {
@@ -449,6 +457,7 @@ export default function EventCreate() {
         setBannerUrl(null);
         setSelectedCategories([]);
         setSegments([]);
+        setConstraints([]);
         setSingleSegmentData({
             capacity: 0,
             registrationDeadline: "",
@@ -530,6 +539,11 @@ export default function EventCreate() {
                     formData.append("categoryNames", category);
                 });
 
+            // Add constraints as JSON string
+            if (constraints.length > 0) {
+                formData.append("constraints", JSON.stringify(constraints));
+            }
+
             // Add segments as JSON string
             if (hasMultipleSegments) {
                 if (segments.length > 0) {
@@ -600,6 +614,7 @@ export default function EventCreate() {
         { id: "basic", label: "Basic Info" },
         { id: "categories", label: "Categories" },
         ...(hasMultipleSegments ? [{ id: "segments", label: "Segments" }] : []),
+        { id: "constraints", label: "Constraints" },
         { id: "preview", label: "Preview" },
     ];
 
@@ -754,6 +769,17 @@ export default function EventCreate() {
                                 onRemoveSegment={removeSegment}
                                 onUpdateSegment={updateSegment}
                                 errors={segmentErrors}
+                            />
+                        )}
+
+                        {activeTab === "constraints" && (
+                            <EventConstraints
+                                constraints={constraints}
+                                hasMultipleSegments={hasMultipleSegments}
+                                segments={segments}
+                                onAddConstraint={(c) => setConstraints((prev) => [...prev, c])}
+                                onRemoveConstraint={(id) => setConstraints((prev) => prev.filter(c => c.id !== id))}
+                                onUpdateConstraint={(id, updated) => setConstraints((prev) => prev.map(c => c.id === id ? updated : c))}
                             />
                         )}
                     </div>
