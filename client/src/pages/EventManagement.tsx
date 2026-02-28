@@ -8,6 +8,7 @@ import RegistrantList from "../components/EventManagement/RegistrantList";
 interface Segment {
     id: string;
     name: string;
+    isRegistrationPaused?: boolean;
 }
 
 interface Event {
@@ -31,6 +32,9 @@ export default function EventManagement() {
                 const data = await res.json();
                 if (res.ok) {
                     setEvent(data.event);
+                    if (data.event.segments && data.event.segments.length === 1) {
+                        setSelectedSegmentId(data.event.segments[0].id);
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch event", err);
@@ -41,8 +45,20 @@ export default function EventManagement() {
         fetchEvent();
     }, [id]);
 
+    const handleSegmentPauseToggle = (segmentId: string, isPaused: boolean) => {
+        if (!event) return;
+        setEvent({
+            ...event,
+            segments: event.segments.map(s => 
+                s.id === segmentId ? { ...s, isRegistrationPaused: isPaused } : s
+            )
+        });
+    };
+
     if (loading) return <div className="p-10 flex justify-center"><FaSpinner className="animate-spin text-accent text-2xl" /></div>;
     if (!event) return <div className="p-10 text-center">Event not found</div>;
+
+    const selectedSegment = event.segments?.find(s => s.id === selectedSegmentId);
 
     return (
         <div className="flex bg-zinc-950 min-h-screen">
@@ -67,7 +83,7 @@ export default function EventManagement() {
                         <FaBullhorn /> Announcements
                     </button>
                     <button 
-                         onClick={() => setActiveTab("registrations")}
+                        onClick={() => setActiveTab("registrations")}
                         className={cn(
                             "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
                             activeTab === "registrations" ? "bg-accent text-black font-medium" : "text-zinc-400 hover:bg-zinc-800"
@@ -115,6 +131,7 @@ export default function EventManagement() {
                                 )}
                             >
                                 {seg.name}
+                                {seg.isRegistrationPaused && <span className="ml-2 w-1.5 h-1.5 bg-red-500 rounded-full inline-block" title="Registration Paused"></span>}
                             </button>
                         ))}
                     </div>
@@ -133,7 +150,12 @@ export default function EventManagement() {
                         />
                     )}
                     {activeTab === "registrations" && (
-                        <RegistrantList eventId={event.id} segmentId={selectedSegmentId} />
+                        <RegistrantList 
+                            eventId={event.id} 
+                            segmentId={selectedSegmentId} 
+                            isPaused={selectedSegment?.isRegistrationPaused}
+                            onTogglePause={() => selectedSegment && handleSegmentPauseToggle(selectedSegment.id, !selectedSegment.isRegistrationPaused)}
+                        />
                     )}
                     {activeTab === "settings" && (
                         <div className="text-zinc-500">Settings: Edit event, etc. (Placeholder)</div>

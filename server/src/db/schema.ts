@@ -170,6 +170,7 @@ export const segmentsTable = pgTable("segments", {
     updatedAt: timestamp("updated_at", { withTimezone: true })
         .notNull()
         .defaultNow(),
+    isRegistrationPaused: boolean("is_registration_paused").default(false).notNull(),
 });
 
 export const categoriesTable = pgTable("categories", {

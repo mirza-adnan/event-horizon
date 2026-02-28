@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { eq, and, or, inArray } from "drizzle-orm";
+import { eq, and, or, inArray, sql } from "drizzle-orm";
 import db from "../db";
 import {
     registrationsTable,
@@ -27,6 +27,10 @@ export const createRegistration = async (req: Request, res: Response) => {
         const [segment] = await db.select().from(segmentsTable).where(eq(segmentsTable.id, segmentId));
         if (!segment) {
             return res.status(404).json({ message: "Segment not found" });
+        }
+
+        if (segment.isRegistrationPaused) {
+            return res.status(403).json({ message: "Registration for this segment is currently paused" });
         }
 
         const [event] = await db.select().from(eventsTable).where(eq(eventsTable.id, eventId));
@@ -205,7 +209,7 @@ export const createRegistration = async (req: Request, res: Response) => {
                 segmentId,
                 userId,
                 status: segment.registrationFee > 0 ? "payment_pending" : "approved",
-                paymentStatus: "unpaid",
+                paymentStatus: segment.registrationFee > 0 ? "unpaid" : "paid",
                 data
             } as NewRegistration).returning();
 
@@ -362,12 +366,13 @@ export const getEventRegistrants = async (req: Request, res: Response) => {
         }
 
         // Fetch registrations with User/Team info
-        const registrations = await db
+        const regs = await db
             .select({
                 id: registrationsTable.id,
                 status: registrationsTable.status,
                 paymentStatus: registrationsTable.paymentStatus,
                 segmentName: segmentsTable.name,
+                segmentId: registrationsTable.segmentId,
                 // Individual
                 userId: usersTable.id,
                 userName: usersTable.firstName, 
@@ -376,13 +381,44 @@ export const getEventRegistrants = async (req: Request, res: Response) => {
                 teamId: teamsTable.id,
                 teamName: teamsTable.name,
                 teamLeader: teamsTable.leaderId
-                // TODO: join leader info if needed
             })
             .from(registrationsTable)
             .leftJoin(usersTable, eq(registrationsTable.userId, usersTable.id))
             .leftJoin(teamsTable, eq(registrationsTable.teamId, teamsTable.id))
             .leftJoin(segmentsTable, eq(registrationsTable.segmentId, segmentsTable.id))
-            .where(eq(registrationsTable.eventId, eventId));
+            .where(
+                and(
+                    eq(registrationsTable.eventId, eventId),
+                    eq(registrationsTable.paymentStatus, 'paid')
+                )
+            );
+
+        // Fetch team members for all team registrations
+        const teamIds = regs.filter(r => r.teamId).map(r => r.teamId as string);
+        let teamMembers: any[] = [];
+        if (teamIds.length > 0) {
+            teamMembers = await db
+                .select({
+                    teamId: teamMembersTable.teamId,
+                    userId: usersTable.id,
+                    userName: sql<string>`${usersTable.firstName} || ' ' || COALESCE(${usersTable.lastName}, '')`,
+                    userEmail: usersTable.email,
+                    role: teamMembersTable.role
+                })
+                .from(teamMembersTable)
+                .innerJoin(usersTable, eq(teamMembersTable.userId, usersTable.id))
+                .where(inArray(teamMembersTable.teamId, teamIds));
+        }
+
+        const registrations = regs.map(reg => {
+            if (reg.teamId) {
+                return {
+                    ...reg,
+                    teamMembers: teamMembers.filter(m => m.teamId === reg.teamId)
+                };
+            }
+            return reg;
+        });
 
         res.json({ registrations });
 
@@ -439,5 +475,50 @@ export const mockPay = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Mock payment error:", error);
         res.status(500).json({ message: "Payment failed" });
+    }
+};
+
+// Toggle Registration Pause
+export const toggleRegistrationPause = async (req: Request, res: Response) => {
+    try {
+        const organizerId = (req as any).organizer?.id;
+        const { segmentId } = req.params;
+
+        if (!organizerId) return res.status(401).json({ message: "Unauthorized" });
+
+        // Fetch segment and check event ownership
+        const [segment] = await db
+            .select({
+                id: segmentsTable.id,
+                isRegistrationPaused: segmentsTable.isRegistrationPaused,
+                organizerId: eventsTable.organizerId
+            })
+            .from(segmentsTable)
+            .innerJoin(eventsTable, eq(segmentsTable.eventId, eventsTable.id))
+            .where(eq(segmentsTable.id, segmentId));
+
+        if (!segment) {
+            return res.status(404).json({ message: "Segment not found" });
+        }
+
+        if (segment.organizerId !== organizerId) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        // Toggle pause
+        const [updated] = await db
+            .update(segmentsTable)
+            .set({ isRegistrationPaused: !segment.isRegistrationPaused })
+            .where(eq(segmentsTable.id, segmentId))
+            .returning();
+
+        res.json({ 
+            message: `Registration ${updated.isRegistrationPaused ? 'paused' : 'started'} successfully`,
+            isRegistrationPaused: updated.isRegistrationPaused 
+        });
+
+    } catch (error) {
+        console.error("Toggle registration pause error:", error);
+        res.status(500).json({ message: "Failed to toggle registration pause" });
     }
 };
