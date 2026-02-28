@@ -34,6 +34,14 @@ const vector = customType<{ data: number[], driverData: string }>({
     },
 });
 
+export const userStatusEnum = pgEnum("user_status", [
+    "School",
+    "High School",
+    "University",
+    "Graduate",
+    "Other",
+]);
+
 export const usersTable = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
     email: text("email").unique().notNull(),
@@ -44,6 +52,9 @@ export const usersTable = pgTable("users", {
     phone: text("phone").unique(),
     verified: boolean("verified").default(false).notNull(),
     verificationToken: text("verification_token"), // For email verification
+    gender: text("gender").notNull().default("prefer_not_to_say"),
+    status: userStatusEnum("status"),
+    country: text("country"),
 
     avatarUrl: text("avatar_url"),
     dateOfBirth: date("date_of_birth").notNull(),
@@ -121,6 +132,7 @@ export const eventsTable = pgTable("events", {
     registrationFee: integer("registration_fee").default(0).notNull(),
     latitude: real("latitude"),
     longitude: real("longitude"),
+    constraints: json("constraints").$type<any[]>().default([]),
 });
 
 export const segmentsTable = pgTable("segments", {
@@ -248,6 +260,7 @@ export const teamChatsTable = pgTable("team_chats", {
 });
 
 export const registrationStatusEnum = pgEnum("registration_status", [
+    "payment_pending",
     "pending",
     "approved",
     "rejected",
@@ -487,3 +500,15 @@ export const bookmarksRelations = relations(bookmarksTable, ({ one }) => ({
 
 export type Bookmark = InferSelectModel<typeof bookmarksTable>;
 export type NewBookmark = InferInsertModel<typeof bookmarksTable>;
+
+export const constraintRequestsTable = pgTable("constraint_requests", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizerId: uuid("organizer_id")
+        .references(() => orgsTable.id, { onDelete: "cascade" })
+        .notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
