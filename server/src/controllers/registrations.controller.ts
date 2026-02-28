@@ -11,6 +11,7 @@ import {
 } from "../db/schema";
 import { NewRegistration } from "../db/schema";
 import { updateUserInterest } from "../utils/user-interests";
+import { checkConstraints } from "../utils/constraints";
 
 // Create Registration
 export const createRegistration = async (req: Request, res: Response) => {
@@ -22,10 +23,15 @@ export const createRegistration = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Event ID and Segment ID are required" });
         }
 
-        // 1. Fetch Segment details to check restrictions
+        // 1. Fetch Segment details and Event details
         const [segment] = await db.select().from(segmentsTable).where(eq(segmentsTable.id, segmentId));
         if (!segment) {
             return res.status(404).json({ message: "Segment not found" });
+        }
+
+        const [event] = await db.select().from(eventsTable).where(eq(eventsTable.id, eventId));
+        if (!event) {
+            return res.status(404).json({ message: "Event not found" });
         }
 
         // 2. Determine Registration Type
@@ -47,15 +53,24 @@ export const createRegistration = async (req: Request, res: Response) => {
                 return res.status(403).json({ message: "Only team leaders can register the team" });
             }
 
+            // Fetch team members with full user profiles for constraint validation
+            const teamMembersData = await db
+                .select({
+                    id: usersTable.id,
+                    firstName: usersTable.firstName,
+                    lastName: usersTable.lastName,
+                    dateOfBirth: usersTable.dateOfBirth,
+                    gender: usersTable.gender,
+                    email: usersTable.email
+                })
+                .from(teamMembersTable)
+                .innerJoin(usersTable, eq(teamMembersTable.userId, usersTable.id))
+                .where(eq(teamMembersTable.teamId, teamId));
+
+            const teamSize = teamMembersData.length;
+
             // Check Team Size Constraints
             if (segment.minTeamSize || segment.maxTeamSize) {
-                const teamMembers = await db
-                    .select()
-                    .from(teamMembersTable)
-                    .where(eq(teamMembersTable.teamId, teamId));
-                
-                const teamSize = teamMembers.length;
-
                 if (segment.minTeamSize && teamSize < segment.minTeamSize) {
                     return res.status(400).json({ 
                         message: `Team size is too small. Minimum required: ${segment.minTeamSize}. Your team has: ${teamSize}` 
@@ -67,6 +82,12 @@ export const createRegistration = async (req: Request, res: Response) => {
                         message: `Team size is too large. Maximum allowed: ${segment.maxTeamSize}. Your team has: ${teamSize}` 
                     });
                 }
+            }
+
+            // Check Event Constraints
+            const constraintError = checkConstraints(teamMembersData, segmentId, event.constraints || [], data?.code);
+            if (constraintError) {
+                return res.status(400).json({ message: `Constraint Failed: ${constraintError}` });
             }
 
             // Check duplicate registration
@@ -91,7 +112,7 @@ export const createRegistration = async (req: Request, res: Response) => {
                 segmentId,
                 teamId,
                 userId, // Record who made the registration
-                status: "pending", // Default
+                status: segment.registrationFee > 0 ? "payment_pending" : "approved",
                 paymentStatus: "unpaid",
                 data
             } as NewRegistration).returning();
@@ -119,6 +140,16 @@ export const createRegistration = async (req: Request, res: Response) => {
 
         } else {
             // Individual Registration Logic
+            
+            // Check Event Constraints
+            const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+            if (user) {
+                const constraintError = checkConstraints([user], segmentId, event.constraints || [], data?.code);
+                if (constraintError) {
+                    return res.status(400).json({ message: `Constraint Failed: ${constraintError}` });
+                }
+            }
+
              // Check duplicate
              const [existing] = await db
                 .select()
@@ -173,7 +204,7 @@ export const createRegistration = async (req: Request, res: Response) => {
                 eventId,
                 segmentId,
                 userId,
-                status: "pending",
+                status: segment.registrationFee > 0 ? "payment_pending" : "approved",
                 paymentStatus: "unpaid",
                 data
             } as NewRegistration).returning();
@@ -196,7 +227,7 @@ export const createRegistration = async (req: Request, res: Response) => {
             }
             // ---------------------------------------
 
-            return res.status(201).json({ message: "Registration successful", registration: reg });
+            return res.status(201).json({ message: "Registration created, pending payment", registration: reg });
         }
 
     } catch (error) {

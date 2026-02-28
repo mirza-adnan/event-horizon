@@ -229,6 +229,20 @@ export const createEvent = async (req: Request, res: Response) => {
             }
         }
 
+        // Handle constraints
+        let constraints: any[] = [];
+        if (req.body.constraints) {
+            if (typeof req.body.constraints === "string") {
+                try {
+                    constraints = JSON.parse(req.body.constraints);
+                } catch (parseError) {
+                    console.error("Constraints parse error", parseError);
+                }
+            } else if (Array.isArray(req.body.constraints)) {
+                constraints = req.body.constraints;
+            }
+        }
+
         const result = await db.transaction(async (tx) => {
             const [newEvent] = await tx
                 .insert(eventsTable)
@@ -247,6 +261,7 @@ export const createEvent = async (req: Request, res: Response) => {
                     organizerId,
                     latitude: latitude ? parseFloat(latitude) : null,
                     longitude: longitude ? parseFloat(longitude) : null,
+                    constraints,
                 })
                 .returning();
 
@@ -348,7 +363,36 @@ export const createEvent = async (req: Request, res: Response) => {
                     categoryId: segment.categoryId || null,
                 }));
 
-                await tx.insert(segmentsTable).values(segmentValues);
+                const insertedSegments = await tx.insert(segmentsTable).values(segmentValues).returning({ id: segmentsTable.id });
+
+                if (constraints.length > 0 && hasMultipleSegments) {
+                    let updatedConstraints = [...constraints];
+                    let constraintsChanged = false;
+
+                    segments.forEach((seg, index) => {
+                        const oldId = String(seg.id);
+                        const newId = insertedSegments[index].id;
+                        
+                        updatedConstraints = updatedConstraints.map(c => {
+                            if (c.includedSegments && c.includedSegments.includes(oldId)) {
+                                constraintsChanged = true;
+                                return {
+                                    ...c,
+                                    includedSegments: c.includedSegments.map((sId: string) => sId === oldId ? newId : sId)
+                                }
+                            }
+                            return c;
+                        });
+                    });
+
+                    if (constraintsChanged) {
+                        await tx.update(eventsTable)
+                            .set({ constraints: updatedConstraints })
+                            .where(eq(eventsTable.id, newEvent.id));
+                        
+                        newEvent.constraints = updatedConstraints;
+                    }
+                }
             }
 
             return newEvent;
@@ -504,6 +548,18 @@ export const updateEvent = async (req: Request, res: Response) => {
              }
          }
 
+         // Handle constraints
+         let constraints: any[] = [];
+         if (req.body.constraints) {
+             if (typeof req.body.constraints === "string") {
+                 try {
+                     constraints = JSON.parse(req.body.constraints);
+                 } catch (e) {}
+             } else if (Array.isArray(req.body.constraints)) {
+                 constraints = req.body.constraints;
+             }
+         }
+
          // Validations
          if (endDate && new Date(endDate) < new Date(startDate)) {
             return res.status(400).json({ message: "End date error" });
@@ -549,7 +605,8 @@ export const updateEvent = async (req: Request, res: Response) => {
                 hasMultipleSegments: String(hasMultipleSegments) === "true",
                 latitude: latitude !== undefined ? (latitude ? parseFloat(latitude) : null) : existingEvent.latitude,
                 longitude: longitude !== undefined ? (longitude ? parseFloat(longitude) : null) : existingEvent.longitude,
-                updatedAt: new Date()
+                updatedAt: new Date(),
+                constraints
             }).where(eq(eventsTable.id, id));
 
             // Update Categories: Delete all and re-insert
@@ -580,7 +637,34 @@ export const updateEvent = async (req: Request, res: Response) => {
                     eventId: id,
                     categoryId: segment.categoryId || null,
                 }));
-                await tx.insert(segmentsTable).values(segmentValues);
+                const insertedSegments = await tx.insert(segmentsTable).values(segmentValues).returning({ id: segmentsTable.id });
+
+                if (constraints.length > 0 && String(hasMultipleSegments) === "true") {
+                    let updatedConstraints = [...constraints];
+                    let constraintsChanged = false;
+
+                    segments.forEach((seg, index) => {
+                        const oldId = String(seg.id);
+                        const newId = insertedSegments[index].id;
+                        
+                        updatedConstraints = updatedConstraints.map(c => {
+                            if (c.includedSegments && c.includedSegments.includes(oldId)) {
+                                constraintsChanged = true;
+                                return {
+                                    ...c,
+                                    includedSegments: c.includedSegments.map((sId: string) => sId === oldId ? newId : sId)
+                                }
+                            }
+                            return c;
+                        });
+                    });
+
+                    if (constraintsChanged) {
+                        await tx.update(eventsTable)
+                            .set({ constraints: updatedConstraints })
+                            .where(eq(eventsTable.id, id));
+                    }
+                }
             }
 
             // Update Embedding
