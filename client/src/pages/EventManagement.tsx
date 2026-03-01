@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { FaSpinner, FaArrowLeft, FaBullhorn, FaUsers, FaCog } from "react-icons/fa";
+import { FaSpinner, FaArrowLeft, FaBullhorn, FaUsers, FaCog, FaEdit } from "react-icons/fa";
 import { cn } from "../utils/helpers";
 import AnnouncementFeed from "../components/EventManagement/AnnouncementFeed";
 import RegistrantList from "../components/EventManagement/RegistrantList";
+import EventEdit from "../components/EventManagement/EventEdit";
 
 interface Segment {
     id: string;
@@ -21,27 +22,28 @@ export default function EventManagement() {
     const { id } = useParams();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState("feed"); // 'feed' | 'registrations' | 'settings'
+    const [activeTab, setActiveTab] = useState("feed"); // 'feed' | 'registrations' | 'settings' | 'edit'
     const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null); // null = Global
 
-    useEffect(() => {
-        const fetchEvent = async () => {
-            try {
-                // Fetch basic event info + segments to populate tabs
-                const res = await fetch(`http://localhost:5050/api/events/${id}`);
-                const data = await res.json();
-                if (res.ok) {
-                    setEvent(data.event);
-                    if (data.event.segments && data.event.segments.length === 1) {
-                        setSelectedSegmentId(data.event.segments[0].id);
-                    }
+    const fetchEvent = async () => {
+        try {
+            // Fetch basic event info + segments to populate tabs
+            const res = await fetch(`http://localhost:5050/api/events/${id}`);
+            const data = await res.json();
+            if (res.ok) {
+                setEvent(data.event);
+                if (data.event.segments && data.event.segments.length === 1) {
+                    setSelectedSegmentId(data.event.segments[0].id);
                 }
-            } catch (err) {
-                console.error("Failed to fetch event", err);
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (err) {
+            console.error("Failed to fetch event", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchEvent();
     }, [id]);
 
@@ -99,6 +101,15 @@ export default function EventManagement() {
                         )}
                     >
                         <FaCog /> Settings
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab("edit")}
+                        className={cn(
+                            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
+                            activeTab === "edit" ? "bg-accent text-black font-medium" : "text-zinc-400 hover:bg-zinc-800"
+                        )}
+                    >
+                        <FaEdit /> Edit Details
                     </button>
                 </nav>
             </div>
@@ -159,6 +170,9 @@ export default function EventManagement() {
                     )}
                     {activeTab === "settings" && (
                         <div className="text-zinc-500">Settings: Edit event, etc. (Placeholder)</div>
+                    )}
+                    {activeTab === "edit" && (
+                        <EventEdit eventId={event.id} onUpdateSuccess={fetchEvent} />
                     )}
                 </main>
             </div>
