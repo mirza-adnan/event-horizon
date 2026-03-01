@@ -14,6 +14,8 @@ export const getUserProfile = async (req: Request, res: Response) => {
                 lastName: usersTable.lastName,
                 email: usersTable.email,
                 avatarUrl: usersTable.avatarUrl,
+                bio: usersTable.bio,
+                skills: usersTable.skills,
                 createdAt: usersTable.createdAt,
             })
             .from(usersTable)
@@ -108,6 +110,39 @@ export const searchUsers = async (req: Request, res: Response) => {
         res.json({ users });
     } catch (error) {
         console.error("Search users error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const updateUserProfile = async (req: Request, res: Response) => {
+    try {
+        const { id } = (req as any).user; // Assuming user info is available from auth middleware
+        const { firstName, lastName, bio, skills } = req.body;
+
+        if (!firstName) {
+            return res.status(400).json({ message: "First name is required" });
+        }
+
+        const updateData: any = {
+            firstName,
+            lastName,
+            bio,
+            skills,
+        };
+
+        if (skills) {
+            const { generateEmbedding } = await import("../utils/embeddings");
+            updateData.skillsEmbedding = await generateEmbedding(skills);
+        }
+
+        await db
+            .update(usersTable)
+            .set(updateData)
+            .where(eq(usersTable.id, id));
+
+        res.json({ message: "Profile updated successfully" });
+    } catch (error) {
+        console.error("Update profile error:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };

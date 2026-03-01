@@ -64,6 +64,8 @@ export const usersTable = pgTable("users", {
         .notNull()
         .defaultNow(),
     embedding: vector("embedding"),
+    skills: text("skills"),
+    skillsEmbedding: vector("skills_embedding"),
 });
 
 export const orgStatusEnum = pgEnum("organizer_status", [
