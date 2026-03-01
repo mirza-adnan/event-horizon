@@ -27,7 +27,7 @@ interface Segment {
     registrationDeadline: string;
     minTeamSize?: number;
     maxTeamSize?: number;
-    registrationFee?: number;
+    registrationFee: number;
 }
 
 export default function EventCreate() {
@@ -87,6 +87,7 @@ export default function EventCreate() {
         isTeamSegment: false,
         minTeamSize: 1,
         maxTeamSize: 5,
+        registrationFee: 0,
     });
 
     // Fetch existing event data if in edit mode
@@ -127,18 +128,20 @@ export default function EventCreate() {
                             const seg = e.segments[0];
                             setSingleSegmentData({
                                 capacity: seg.capacity,
-                                registrationDeadline: seg.registrationDeadline ? seg.registrationDeadline.split("T")[0] : "",
+                                registrationDeadline: seg.registrationDeadline ? seg.registrationDeadline.substring(0, 10) : "",
                                 isTeamSegment: seg.isTeamSegment,
                                 minTeamSize: seg.minTeamSize || 1,
                                 maxTeamSize: seg.maxTeamSize || 5,
+                                registrationFee: seg.registrationFee || 0
                             });
                         } else {
                             // Load multi segments
                              setSegments(e.segments.map((seg: any) => ({
                                 ...seg,
-                                startTime: seg.startTime ? seg.startTime.split("T")[0] : "", // Simplification for date input
-                                endTime: seg.endTime ? seg.endTime.split("T")[0] : "",
-                                registrationDeadline: seg.registrationDeadline ? seg.registrationDeadline.split("T")[0] : ""
+                                startTime: seg.startTime ? seg.startTime.substring(0, 16) : "",
+                                endTime: seg.endTime ? seg.endTime.substring(0, 16) : "",
+                                registrationDeadline: seg.registrationDeadline ? seg.registrationDeadline.substring(0, 16) : "",
+                                registrationFee: seg.registrationFee || 0
                              })));
                         }
                     }
@@ -391,6 +394,7 @@ export default function EventCreate() {
                 isTeamSegment: false,
                 isOnline: false,
                 registrationDeadline: "",
+                registrationFee: 0,
             },
         ]);
     };
@@ -464,6 +468,7 @@ export default function EventCreate() {
             isTeamSegment: false,
             minTeamSize: 1,
             maxTeamSize: 5,
+            registrationFee: 0,
         });
         setIsOnline(false);
         setHasMultipleSegments(true);

@@ -1,0 +1,616 @@
+[
+  {
+    "title": "Global Tech Hackathon 2026",
+    "slug": "global-tech-hackathon-2026",
+    "description": "A 48-hour global marathon for developers, designers, and entrepreneurs to build innovative solutions for climate change.",
+    "address": "Virtual Event",
+    "city": "Remote",
+    "country": "Worldwide",
+    "startDate": "2026-05-15",
+    "endDate": "2026-05-17",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": true,
+    "registrationFee": 10,
+    "segments": [
+      {
+        "name": "Initial Brainstorming",
+        "description": "Formation of teams and ideation phase.",
+        "startTime": "2026-05-15T09:00:00Z",
+        "endTime": "2026-05-15T12:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": true,
+        "minTeamSize": 2,
+        "maxTeamSize": 5,
+        "registrationFee": 0
+      },
+      {
+        "name": "Main Building Phase",
+        "description": "The primary coding and development segment.",
+        "startTime": "2026-05-15T13:00:00Z",
+        "endTime": "2026-05-17T09:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": true,
+        "minTeamSize": 2,
+        "maxTeamSize": 5,
+        "registrationFee": 10
+      }
+    ]
+  },
+  {
+    "title": "Elite Chess Championship",
+    "slug": "elite-chess-championship",
+    "description": "An offline blitz chess tournament for ranked players.",
+    "address": "Chess Club, 42 Grandmaster Ave",
+    "city": "New York",
+    "country": "USA",
+    "startDate": "2026-06-10",
+    "endDate": "2026-06-10",
+    "status": "published",
+    "isOnline": false,
+    "hasMultipleSegments": false,
+    "registrationFee": 25,
+    "segments": [
+      {
+        "name": "Tournament Rounds",
+        "description": "Standard Swiss-style rounds.",
+        "startTime": "2026-06-10T10:00:00Z",
+        "endTime": "2026-06-10T18:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 25
+      }
+    ]
+  },
+  {
+    "title": "AI Innovation Summit",
+    "slug": "ai-innovation-summit-2026",
+    "description": "A conference featuring the latest breakthroughs in Generative AI and Robotics.",
+    "address": "Convention Center",
+    "city": "San Francisco",
+    "country": "USA",
+    "startDate": "2026-08-01",
+    "endDate": "2026-08-02",
+    "status": "draft",
+    "isOnline": false,
+    "hasMultipleSegments": true,
+    "registrationFee": 150,
+    "segments": [
+      {
+        "name": "Keynote Sessions",
+        "description": "Talks from industry leaders.",
+        "startTime": "2026-08-01T09:00:00Z",
+        "endTime": "2026-08-01T17:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 100
+      },
+      {
+        "name": "Hands-on Workshops",
+        "description": "Technical labs for engineers.",
+        "startTime": "2026-08-02T10:00:00Z",
+        "endTime": "2026-08-02T16:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 75
+      }
+    ]
+  },
+  {
+    "title": "Quick Design Sprint",
+    "slug": "quick-design-sprint",
+    "description": "Collaborative UI/UX design session to prototype a mobile app.",
+    "address": "Miro/Zoom",
+    "city": "Remote",
+    "country": "Online",
+    "startDate": "2026-04-20",
+    "endDate": "2026-04-20",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": false,
+    "registrationFee": 0,
+    "segments": [
+      {
+        "name": "Sprint Session",
+        "description": "Rapid prototyping and user testing.",
+        "startTime": "2026-04-20T14:00:00Z",
+        "endTime": "2026-04-20T20:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": true,
+        "minTeamSize": 3,
+        "maxTeamSize": 5,
+        "registrationFee": 0
+      }
+    ]
+  },
+  {
+    "title": "Retro Indie Jam",
+    "slug": "retro-indie-jam",
+    "description": "Game development jam focused on 8-bit aesthetic and mechanics.",
+    "address": "Discord / Itch.io",
+    "city": "Online",
+    "country": "Online",
+    "startDate": "2026-07-05",
+    "endDate": "2026-07-12",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": true,
+    "registrationFee": 5,
+    "segments": [
+      {
+        "name": "Opening Ceremony",
+        "description": "Theme reveal and Q&A.",
+        "startTime": "2026-07-05T18:00:00Z",
+        "endTime": "2026-07-05T19:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": true,
+        "registrationFee": 0
+      },
+      {
+        "name": "Main Jam Period",
+        "description": "The 7-day development window.",
+        "startTime": "2026-07-05T19:00:00Z",
+        "endTime": "2026-07-12T19:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": true,
+        "minTeamSize": 1,
+        "maxTeamSize": 4,
+        "registrationFee": 5
+      }
+    ]
+  },
+  {
+    "title": "Zen Code Contest",
+    "slug": "zen-code-contest",
+    "description": "A competitive programming contest emphasizing clean code over speed.",
+    "address": "Online Platform",
+    "city": "Remote",
+    "country": "Remote",
+    "startDate": "2026-09-12",
+    "endDate": "2026-09-12",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": false,
+    "registrationFee": 0,
+    "segments": [
+      {
+        "name": "Contest Window",
+        "description": "Solve 5 problems with focus on readability.",
+        "startTime": "2026-09-12T10:00:00Z",
+        "endTime": "2026-09-12T13:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": true,
+        "registrationFee": 0
+      }
+    ]
+  },
+  {
+    "title": "Founders & Funders Mixer",
+    "slug": "founders-funders-mixer",
+    "description": "Evening networking for early-stage startup founders and VCs.",
+    "address": "Rooftop Lounge",
+    "city": "London",
+    "country": "UK",
+    "startDate": "2026-05-28",
+    "endDate": "2026-05-28",
+    "status": "published",
+    "isOnline": false,
+    "hasMultipleSegments": false,
+    "registrationFee": 50,
+    "segments": [
+      {
+        "name": "Networking Hour",
+        "description": "Open floor for introductions and cocktails.",
+        "startTime": "2026-05-28T18:30:00Z",
+        "endTime": "2026-05-28T21:30:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 50
+      }
+    ]
+  },
+  {
+    "title": "Blockchain Protocol Summit",
+    "slug": "blockchain-protocol-summit",
+    "description": "Deep dive into Layer 2 scaling solutions and governance tokens.",
+    "address": "Tech Hub",
+    "city": "Berlin",
+    "country": "Germany",
+    "startDate": "2026-11-15",
+    "endDate": "2026-11-16",
+    "status": "draft",
+    "isOnline": false,
+    "hasMultipleSegments": true,
+    "registrationFee": 120,
+    "segments": [
+      {
+        "name": "Core Dev Panels",
+        "description": "Panel discussions on consensus mechanisms.",
+        "startTime": "2026-11-15T10:00:00Z",
+        "endTime": "2026-11-15T16:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 60
+      },
+      {
+        "name": "Governance Hack",
+        "description": "Mock DAO governance challenge.",
+        "startTime": "2026-11-16T09:00:00Z",
+        "endTime": "2026-11-16T15:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": false,
+        "minTeamSize": 2,
+        "maxTeamSize": 4,
+        "registrationFee": 80
+      }
+    ]
+  },
+  {
+    "title": "Intro to Motion Graphics",
+    "slug": "intro-to-motion-graphics",
+    "description": "Virtual workshop series for aspiring motion designers using After Effects.",
+    "address": "Adobe Live Link",
+    "city": "Remote",
+    "country": "Remote",
+    "startDate": "2026-03-25",
+    "endDate": "2026-03-25",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": false,
+    "registrationFee": 15,
+    "segments": [
+      {
+        "name": "Workshop Session",
+        "description": "Basics of keyframing and composition.",
+        "startTime": "2026-03-25T15:00:00Z",
+        "endTime": "2026-03-25T18:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": true,
+        "registrationFee": 15
+      }
+    ]
+  },
+  {
+    "title": "FinTech Startup Lab",
+    "slug": "fintech-startup-lab",
+    "description": "Incubator style event to build and pitch financial tools.",
+    "address": "Virtual Collaborative Space",
+    "city": "Online",
+    "country": "Online",
+    "startDate": "2026-10-01",
+    "endDate": "2026-10-04",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": true,
+    "registrationFee": 0,
+    "segments": [
+      {
+        "name": "Market Analysis",
+        "description": "Identify gaps in current financial products.",
+        "startTime": "2026-10-01T10:00:00Z",
+        "endTime": "2026-10-01T14:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": true,
+        "minTeamSize": 2,
+        "maxTeamSize": 4,
+        "registrationFee": 0
+      },
+      {
+        "name": "Final Pitch Day",
+        "description": "Present solutions to guest judges.",
+        "startTime": "2026-10-04T12:00:00Z",
+        "endTime": "2026-10-04T16:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": true,
+        "minTeamSize": 2,
+        "maxTeamSize": 4,
+        "registrationFee": 20
+      }
+    ]
+  },
+  {
+    "title": "Cyber Guard CTF",
+    "slug": "cyber-guard-ctf",
+    "description": "A high-stakes Capture The Flag competition for security enthusiasts.",
+    "address": "VPN-secured Portal",
+    "city": "Online",
+    "country": "Online",
+    "startDate": "2026-04-12",
+    "endDate": "2026-04-12",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": false,
+    "registrationFee": 0,
+    "segments": [
+      {
+        "name": "CTF Arena",
+        "description": "Exploit vulnerabilities and find flags.",
+        "startTime": "2026-04-12T08:00:00Z",
+        "endTime": "2026-04-12T20:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": true,
+        "registrationFee": 0
+      }
+    ]
+  },
+  {
+    "title": "Eco-City Pitch Night",
+    "slug": "eco-city-pitch-night",
+    "description": "Teams pitch urban sustainability ideas to city planners.",
+    "address": "Town Hall Annex",
+    "city": "Amsterdam",
+    "country": "Netherlands",
+    "startDate": "2026-09-05",
+    "endDate": "2026-09-05",
+    "status": "published",
+    "isOnline": false,
+    "hasMultipleSegments": false,
+    "registrationFee": 30,
+    "segments": [
+      {
+        "name": "Live Presentations",
+        "description": "Main pitch session and feedback panel.",
+        "startTime": "2026-09-05T19:00:00Z",
+        "endTime": "2026-09-05T22:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": false,
+        "minTeamSize": 2,
+        "maxTeamSize": 3,
+        "registrationFee": 30
+      }
+    ]
+  },
+  {
+    "title": "Mobile App Showdown",
+    "slug": "mobile-app-showdown",
+    "description": "An invitation-only exhibition of the best mobile apps from the region.",
+    "address": "Innovation Park",
+    "city": "Austin",
+    "country": "USA",
+    "startDate": "2026-06-25",
+    "endDate": "2026-06-26",
+    "status": "published",
+    "isOnline": false,
+    "hasMultipleSegments": true,
+    "registrationFee": 80,
+    "segments": [
+      {
+        "name": "Booth Exhibition",
+        "description": "Attendees walk through app demos.",
+        "startTime": "2026-06-25T11:00:00Z",
+        "endTime": "2026-06-25T18:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 40
+      },
+      {
+        "name": "Main Stage Demo",
+        "description": "Selected apps present on stage.",
+        "startTime": "2026-06-26T14:00:00Z",
+        "endTime": "2026-06-26T17:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 60
+      }
+    ]
+  },
+  {
+    "title": "Cloud Master Boot Camp",
+    "slug": "cloud-master-boot-camp",
+    "description": "Intensive online training for AWS and Azure certification.",
+    "address": "LMS Portal",
+    "city": "Remote",
+    "country": "Remote",
+    "startDate": "2026-02-15",
+    "endDate": "2026-02-22",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": true,
+    "registrationFee": 200,
+    "segments": [
+      {
+        "name": "Architecture Week",
+        "description": "Building scalable cloud infra.",
+        "startTime": "2026-02-15T09:00:00Z",
+        "endTime": "2026-02-19T17:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": true,
+        "registrationFee": 150
+      },
+      {
+        "name": "Security & Cost Opt",
+        "description": "Optimizing and securing your stack.",
+        "startTime": "2026-02-21T10:00:00Z",
+        "endTime": "2026-02-22T16:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": true,
+        "registrationFee": 75
+      }
+    ]
+  },
+  {
+    "title": "Autonomous Robotics Cup",
+    "slug": "autonomous-robotics-cup",
+    "description": "Robots compete in navigating an obstacle course autonomously.",
+    "address": "Engineering Expo Hall",
+    "city": "Tokyo",
+    "country": "Japan",
+    "startDate": "2026-12-05",
+    "endDate": "2026-12-07",
+    "status": "published",
+    "isOnline": false,
+    "hasMultipleSegments": true,
+    "registrationFee": 50,
+    "segments": [
+      {
+        "name": "Trial Runs",
+        "description": "Testing robots on the practice track.",
+        "startTime": "2026-12-05T10:00:00Z",
+        "endTime": "2026-12-05T18:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": false,
+        "minTeamSize": 2,
+        "maxTeamSize": 6,
+        "registrationFee": 0
+      },
+      {
+        "name": "Main Race",
+        "description": "The final championship race.",
+        "startTime": "2026-12-07T13:00:00Z",
+        "endTime": "2026-12-07T16:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": false,
+        "minTeamSize": 2,
+        "maxTeamSize": 6,
+        "registrationFee": 100
+      }
+    ]
+  },
+  {
+    "title": "SaaS Launch Workshop",
+    "slug": "saas-launch-workshop",
+    "description": "A focused session on go-to-market strategies for software products.",
+    "address": "Google Meet",
+    "city": "Online",
+    "country": "Online",
+    "startDate": "2026-01-20",
+    "endDate": "2026-01-20",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": false,
+    "registrationFee": 40,
+    "segments": [
+      {
+        "name": "Strategy Session",
+        "description": "Learn about pricing, funnel, and ads.",
+        "startTime": "2026-01-20T17:00:00Z",
+        "endTime": "2026-01-20T20:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": true,
+        "registrationFee": 40
+      }
+    ]
+  },
+  {
+    "title": "UX Research Days",
+    "slug": "ux-research-days",
+    "description": "Two days of case studies and methodology deep-dives.",
+    "address": "Soma Studio",
+    "city": "Madrid",
+    "country": "Spain",
+    "startDate": "2026-08-20",
+    "endDate": "2026-08-21",
+    "status": "draft",
+    "isOnline": false,
+    "hasMultipleSegments": true,
+    "registrationFee": 90,
+    "segments": [
+      {
+        "name": "Quantitative Methods",
+        "description": "Surveys and A/B testing at scale.",
+        "startTime": "2026-08-20T10:00:00Z",
+        "endTime": "2026-08-20T15:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 50
+      },
+      {
+        "name": "Ethnographic Studies",
+        "description": "Long-term diary studies and field research.",
+        "startTime": "2026-08-21T10:00:00Z",
+        "endTime": "2026-08-21T15:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 50
+      }
+    ]
+  },
+  {
+    "title": "Predictive Analytics Challenge",
+    "slug": "predictive-analytics-challenge",
+    "description": "Compete to build the most accurate sales prediction model.",
+    "address": "Kaggle / Slack",
+    "city": "Remote",
+    "country": "Remote",
+    "startDate": "2026-10-15",
+    "endDate": "2026-10-15",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": false,
+    "registrationFee": 0,
+    "segments": [
+      {
+        "name": "Prediction Window",
+        "description": "Access the dataset and submit results.",
+        "startTime": "2026-10-15T09:00:00Z",
+        "endTime": "2026-10-15T21:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": true,
+        "minTeamSize": 1,
+        "maxTeamSize": 2,
+        "registrationFee": 0
+      }
+    ]
+  },
+  {
+    "title": "A11y Hack Week",
+    "slug": "a11y-hack-week",
+    "description": "Improving web accessibility one site at a time.",
+    "address": "GitHub / Discord",
+    "city": "Online",
+    "country": "Online",
+    "startDate": "2026-11-20",
+    "endDate": "2026-11-27",
+    "status": "published",
+    "isOnline": true,
+    "hasMultipleSegments": true,
+    "registrationFee": 0,
+    "segments": [
+      {
+        "name": "Education Phase",
+        "description": "Workshops on WCAG standards.",
+        "startTime": "2026-11-20T10:00:00Z",
+        "endTime": "2026-11-21T16:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": true,
+        "registrationFee": 0
+      },
+      {
+        "name": "Repair Hack",
+        "description": "Fixing open source projects' a11y issues.",
+        "startTime": "2026-11-22T09:00:00Z",
+        "endTime": "2026-11-27T17:00:00Z",
+        "isTeamSegment": true,
+        "isOnline": true,
+        "minTeamSize": 1,
+        "maxTeamSize": 4,
+        "registrationFee": 0
+      }
+    ]
+  },
+  {
+    "title": "Strategic Product Management",
+    "slug": "strategic-product-management",
+    "description": "In-person intensive case study session for PMs.",
+    "address": "Business Hub, Room 101",
+    "city": "Toronto",
+    "country": "Canada",
+    "startDate": "2026-03-05",
+    "endDate": "2026-03-05",
+    "status": "published",
+    "isOnline": false,
+    "hasMultipleSegments": false,
+    "registrationFee": 75,
+    "segments": [
+      {
+        "name": "Case Study Lab",
+        "description": "Work through a real-world product launch scenario.",
+        "startTime": "2026-03-05T10:00:00Z",
+        "endTime": "2026-03-05T16:00:00Z",
+        "isTeamSegment": false,
+        "isOnline": false,
+        "registrationFee": 75
+      }
+    ]
+  }
+]
